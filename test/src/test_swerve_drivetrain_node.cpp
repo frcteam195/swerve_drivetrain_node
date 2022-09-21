@@ -1,5 +1,5 @@
-#include "test_drivetrain_node.hpp"
-#include "drivetrain_node.hpp"
+#include "test_swerve_drivetrain_node.hpp"
+#include "swerve_drivetrain_node.hpp"
 #include "ros/ros.h"
 
 #include <gtest/gtest.h>
@@ -13,7 +13,7 @@ TEST(DrivetrainTest, Test_Test)
 int main(int argc, char **argv)
 {
     testing::InitGoogleTest(&argc, argv);
-    ros::init(argc, argv, "test_drivetrain_node");
+    ros::init(argc, argv, "test_swerve_drivetrain_node");
     ros::NodeHandle nh;
     return RUN_ALL_TESTS();
 }
