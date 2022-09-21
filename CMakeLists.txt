@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS roscpp std_msgs message_generation rio_c
 
 add_message_files(
   FILES
-  Drivetrain_Diagnostics.msg
+  Swerve_Drivetrain_Diagnostics.msg
 )
 
 ## Generate added messages and services with any dependencies listed here

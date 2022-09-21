@@ -27,8 +27,8 @@
 
 #include <hmi_agent_node/HMI_Signals.h>
 
-#include "drive_helper.hpp"
-#include "drivetrain_node/Drivetrain_Diagnostics.h"
+#include "swerve_drive_helper.hpp"
+#include "swerve_drivetrain_node/Swerve_Drivetrain_Diagnostics.h"
 #include <quesadilla_auto_node/Planner_Output.h>
 
 
@@ -67,7 +67,7 @@ ck::MovingAverage mTargetAngularVelocityFilter(1);
 
 ck::swerve::SwerveDriveConfig swerve_drive_config;
 
-drivetrain_node::Drivetrain_Diagnostics drivetrain_diagnostics;
+swerve_drivetrain_node::Swerve_Drivetrain_Diagnostics swerve_drivetrain_diagnostics;
 quesadilla_auto_node::Planner_Output drive_planner_output_msg;
 
 static constexpr double kDriveGearReduction = (50.0 / 11.0) * (44.0 / 30.0);
@@ -173,6 +173,8 @@ ck::swerve::SwerveDriveOutput calculate_swerve_output_from_twist(geometry_msgs::
 	(void)robot_track_width_inches;
 	(void)robot_track_length_inches;
 
+	(void) twist;
+
 	//DriveHelper::calculate_swerve_outputs(twist, nullptr, 0.01);
 
 	return sdo;
@@ -269,29 +271,29 @@ void motorStatusCallback(const rio_control_node::Motor_Status& msg)
 	// std::lock_guard<std::mutex> lock(mThreadCtrlLock);
 	if (motor_map.count(left_master_id))
 	{
-		drivetrain_diagnostics.actualVelocityLeft = motor_map[left_master_id].sensor_velocity * (wheel_diameter_inches * M_PI * INCHES_TO_METERS) / 60.0;
-		drivetrain_diagnostics.leftRPMActual = motor_map[left_master_id].sensor_velocity;
+		swerve_drivetrain_diagnostics.actualVelocityLeft = motor_map[left_master_id].sensor_velocity * (wheel_diameter_inches * M_PI * INCHES_TO_METERS) / 60.0;
+		swerve_drivetrain_diagnostics.leftRPMActual = motor_map[left_master_id].sensor_velocity;
 	}
 	if (motor_map.count(right_master_id))
 	{
-		drivetrain_diagnostics.actualVelocityRight = motor_map[right_master_id].sensor_velocity * (wheel_diameter_inches * M_PI * INCHES_TO_METERS) / 60.0;
-		drivetrain_diagnostics.rightRPMActual = motor_map[right_master_id].sensor_velocity;
+		swerve_drivetrain_diagnostics.actualVelocityRight = motor_map[right_master_id].sensor_velocity * (wheel_diameter_inches * M_PI * INCHES_TO_METERS) / 60.0;
+		swerve_drivetrain_diagnostics.rightRPMActual = motor_map[right_master_id].sensor_velocity;
 	}
 
 	if (prev_time != ros::Time(0) && dt != 0)
 	{
-		drivetrain_diagnostics.actualAccelLeft = (drivetrain_diagnostics.actualVelocityLeft - prevLeftVel) / dt;
-		drivetrain_diagnostics.actualAccelRight = (drivetrain_diagnostics.actualVelocityRight - prevRightVel) / dt;
+		swerve_drivetrain_diagnostics.actualAccelLeft = (swerve_drivetrain_diagnostics.actualVelocityLeft - prevLeftVel) / dt;
+		swerve_drivetrain_diagnostics.actualAccelRight = (swerve_drivetrain_diagnostics.actualVelocityRight - prevRightVel) / dt;
 	}
 	else
 	{
-		drivetrain_diagnostics.actualAccelLeft = 0;
-		drivetrain_diagnostics.actualAccelRight = 0;
+		swerve_drivetrain_diagnostics.actualAccelLeft = 0;
+		swerve_drivetrain_diagnostics.actualAccelRight = 0;
 	}
-	drivetrain_diagnostics.dt = dt;
+	swerve_drivetrain_diagnostics.dt = dt;
 	
-	prevLeftVel = drivetrain_diagnostics.actualAccelLeft;
-	prevRightVel = drivetrain_diagnostics.actualAccelRight;
+	prevLeftVel = swerve_drivetrain_diagnostics.actualAccelLeft;
+	prevRightVel = swerve_drivetrain_diagnostics.actualAccelRight;
 	prev_time = curr_time;
 }
 
@@ -309,15 +311,15 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 		double left_ff_voltage = drive_planner_output_msg.left_motor_feedforward_voltage;
 		double left_accel_rps2 = drive_planner_output_msg.left_motor_accel_rad_per_sec2;
 
-		drivetrain_diagnostics.targetVelocityLeft = left_rps;
-		drivetrain_diagnostics.targetAccelLeft = left_accel_rps2;
+		swerve_drivetrain_diagnostics.targetVelocityLeft = left_rps;
+		swerve_drivetrain_diagnostics.targetAccelLeft = left_accel_rps2;
 
 		double right_rps = drive_planner_output_msg.right_motor_output_rad_per_sec;
 		double right_ff_voltage = drive_planner_output_msg.right_motor_feedforward_voltage;
 		double right_accel_rps2 = drive_planner_output_msg.right_motor_accel_rad_per_sec2;
 
-		drivetrain_diagnostics.targetVelocityRight = right_rps;
-		drivetrain_diagnostics.targetAccelRight = right_accel_rps2;
+		swerve_drivetrain_diagnostics.targetVelocityRight = right_rps;
+		swerve_drivetrain_diagnostics.targetAccelRight = right_accel_rps2;
 
 		double left_accel_out = ck::math::radians_per_second_to_ticks_per_100ms(left_accel_rps2, kDriveRotationsPerTick) / 1000.0;
 		double right_accel_out = ck::math::radians_per_second_to_ticks_per_100ms(right_accel_rps2, kDriveRotationsPerTick) / 1000.0;
@@ -341,10 +343,10 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 								ck::math::rads_per_sec_to_rpm(right_rps),
 								0
 								);
-		drivetrain_diagnostics.leftAppliedArbFF = left_ff_voltage / 12.0 + velocity_kD * left_accel_out / 1023.0;
-		drivetrain_diagnostics.rightAppliedArbFF = right_ff_voltage / 12.0 + velocity_kD * right_accel_out / 1023.0;
-		drivetrain_diagnostics.rawLeftMotorOutput = ck::math::rads_per_sec_to_rpm(left_rps);
-		drivetrain_diagnostics.rawRightMotorOutput = ck::math::rads_per_sec_to_rpm(right_rps);
+		swerve_drivetrain_diagnostics.leftAppliedArbFF = left_ff_voltage / 12.0 + velocity_kD * left_accel_out / 1023.0;
+		swerve_drivetrain_diagnostics.rightAppliedArbFF = right_ff_voltage / 12.0 + velocity_kD * right_accel_out / 1023.0;
+		swerve_drivetrain_diagnostics.rawLeftMotorOutput = ck::math::rads_per_sec_to_rpm(left_rps);
+		swerve_drivetrain_diagnostics.rawRightMotorOutput = ck::math::rads_per_sec_to_rpm(right_rps);
 	}
     break;
 	case rio_control_node::Robot_Status::TELEOP:
@@ -388,13 +390,13 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 			}
 		}
 		
-		drivetrain_diagnostics.rawLeftMotorOutput = leftPre;
-		drivetrain_diagnostics.rawRightMotorOutput = rightPre;
+		swerve_drivetrain_diagnostics.rawLeftMotorOutput = leftPre;
+		swerve_drivetrain_diagnostics.rawRightMotorOutput = rightPre;
 		double left = mLeftValueRamper->calculateOutput(leftPre);
 		double right = mRightValueRamper->calculateOutput(rightPre);
 
-		drivetrain_diagnostics.rampedLeftMotorOutput = left;
-		drivetrain_diagnostics.rampedRightMotorOutput = right;
+		swerve_drivetrain_diagnostics.rampedLeftMotorOutput = left;
+		swerve_drivetrain_diagnostics.rampedRightMotorOutput = right;
 
 #ifdef CHARACTERIZE_DRIVE
 		if (characterizing_drive)
@@ -415,14 +417,14 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 			}
 			case DriveTuningMode::TuningVelocityPID:
 			{
-				drivetrain_diagnostics.tuningVelocityRPMTarget = tuning_velocity_target;
+				swerve_drivetrain_diagnostics.tuningVelocityRPMTarget = tuning_velocity_target;
 				leftMasterMotor->set( Motor::Control_Mode::VELOCITY, tuning_velocity_target, 0 );
 				rightMasterMotor->set( Motor::Control_Mode::VELOCITY, tuning_velocity_target, 0 );
 				break;
 			}
 			case DriveTuningMode::TuningkVkA:
 			{
-				drivetrain_diagnostics.tuningVelocityRPMTarget = tuning_velocity_target;
+				swerve_drivetrain_diagnostics.tuningVelocityRPMTarget = tuning_velocity_target;
 
 				//Start?? 0.001852534562
 				leftMasterMotor->set( Motor::Control_Mode::PERCENT_OUTPUT, (drive_Kv * tuning_velocity_target) / 12.0, 0 );
@@ -480,8 +482,8 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 		}
 	}
 
-	static ros::Publisher drivetrain_diagnostics_publisher = node->advertise<drivetrain_node::Drivetrain_Diagnostics>("/DrivetrainDiagnostics", 1);
-	drivetrain_diagnostics_publisher.publish(drivetrain_diagnostics);
+	static ros::Publisher swerve_drivetrain_diagnostics_publisher = node->advertise<swerve_drivetrain_node::Swerve_Drivetrain_Diagnostics>("/DrivetrainDiagnostics", 1);
+	swerve_drivetrain_diagnostics_publisher.publish(swerve_drivetrain_diagnostics);
 }
 
 
