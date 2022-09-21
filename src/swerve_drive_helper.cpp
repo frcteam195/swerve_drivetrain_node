@@ -53,7 +53,7 @@ std::vector<std::pair<geometry_msgs::Pose, geometry_msgs::Twist>> DriveHelper::c
         double smallest_overall_traversal = std::fabs(normal_smallest_traversal) < std::fabs(mirror_smallest_traversal) ? normal_smallest_traversal : mirror_smallest_traversal;
         
         tf2::Quaternion smallest_traversal_pose;
-        smallest_traversal_pose.setRPY(0, 0, smallest_overall_traversal);
+        smallest_traversal_pose.setRPY(0, 0, initial_yaw + smallest_overall_traversal);
 
         std::pair<geometry_msgs::Pose, geometry_msgs::Twist> wheel_result;
         wheel_result.first.position = wheel_projected_pose.position;
