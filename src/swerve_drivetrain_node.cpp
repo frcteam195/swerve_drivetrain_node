@@ -130,10 +130,6 @@ void drive_characterization_callback(const drive_physics_characterizer_node::Dri
 
 geometry_msgs::Twist get_twist_from_input(double percent_max_fwd_vel, double direction, double percent_max_ang_vel)
 {
-	(void) percent_max_fwd_vel;
-	(void) percent_max_ang_vel;
-	(void) direction;
-	
 	geometry_msgs::Twist return_twist;
 
 	return_twist.linear.x = percent_max_fwd_vel * std::cos(direction) * robot_max_fwd_vel;
@@ -141,16 +137,6 @@ geometry_msgs::Twist get_twist_from_input(double percent_max_fwd_vel, double dir
 	return_twist.angular.z = percent_max_ang_vel * robot_max_ang_vel;
 
 	return return_twist;
-}
-
-void update_swerve_wheel_angles()
-{
-	for (ck::swerve::WheelConfig w : swerve_drive_config.wheels)
-	{
-		tf2::Quaternion quat_tf;
-		//quat_tf.setRPY(0, 0, yaw);
-		w.transform.rotation = tf2::toMsg(quat_tf);
-	}
 }
 
 ck::swerve::SwerveDriveOutput calculate_swerve_output_from_twist(geometry_msgs::Twist twist)
@@ -278,6 +264,14 @@ void motorStatusCallback(const rio_control_node::Motor_Status& msg)
 	prevLeftVel = swerve_drivetrain_diagnostics.actualAccelLeft;
 	prevRightVel = swerve_drivetrain_diagnostics.actualAccelRight;
 	prev_time = curr_time;
+
+	//Update swerve steering transforms
+	for (int i = 0; i < robot_num_wheels; i++)
+	{
+		tf2::Quaternion quat_tf;
+		quat_tf.setRPY(0, 0, ck::math::normalize_to_2_pi(ck::math::deg2rad(motor_map[steering_motor_ids[i]].sensor_position * 360.0)));
+		swerve_drive_config.wheels[i].transform.rotation = tf2::toMsg(quat_tf);
+	}
 }
 
 void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
