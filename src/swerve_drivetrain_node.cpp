@@ -260,17 +260,7 @@ void motorStatusCallback(const rio_control_node::Motor_Status& msg)
 	ros::Time curr_time = ros::Time::now();
 	double dt = (curr_time - prev_time).toSec();
 
-	// std::lock_guard<std::mutex> lock(mThreadCtrlLock);
-	// if (motor_map.count(left_master_id))
-	// {
-	// 	swerve_drivetrain_diagnostics.actualVelocityLeft = motor_map[left_master_id].sensor_velocity * (wheel_diameter_inches * M_PI * INCHES_TO_METERS) / 60.0;
-	// 	swerve_drivetrain_diagnostics.leftRPMActual = motor_map[left_master_id].sensor_velocity;
-	// }
-	// if (motor_map.count(right_master_id))
-	// {
-	// 	swerve_drivetrain_diagnostics.actualVelocityRight = motor_map[right_master_id].sensor_velocity * (wheel_diameter_inches * M_PI * INCHES_TO_METERS) / 60.0;
-	// 	swerve_drivetrain_diagnostics.rightRPMActual = motor_map[right_master_id].sensor_velocity;
-	// }
+
 
 	swerve_drivetrain_diagnostics.dt = dt;
 	prev_time = curr_time;
@@ -363,9 +353,6 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 			// 	break;
 			// }
 		}
-		
-		// swerve_drivetrain_diagnostics.rawLeftMotorOutput = leftPre;
-		// swerve_drivetrain_diagnostics.rawRightMotorOutput = rightPre;
 
 #ifdef CHARACTERIZE_DRIVE
 		if (characterizing_drive)
@@ -546,7 +533,6 @@ int main(int argc, char **argv)
 	required_params_found &= n.getParam(CKSP(robot_angular_inertia), robot_angular_inertia);
 	required_params_found &= n.getParam(CKSP(robot_angular_drag), robot_angular_drag);
 	required_params_found &= n.getParam(CKSP(robot_scrub_factor), robot_scrub_factor);
-
 	required_params_found &= n.getParam(CKSP(drive_Ks_v_intercept), drive_Ks_v_intercept);
 	required_params_found &= n.getParam(CKSP(drive_Kv), drive_Kv);
 	required_params_found &= n.getParam(CKSP(drive_Ka), drive_Ka);
