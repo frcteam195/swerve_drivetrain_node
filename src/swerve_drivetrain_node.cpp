@@ -9,6 +9,7 @@
 #include <mutex>
 #include <iostream>
 #include <iomanip>
+#include <functional>
 
 #include <nav_msgs/Odometry.h>
 #include <rio_control_node/Joystick_Status.h>
@@ -108,6 +109,21 @@ void tuning_config_callback(drivetrain_node::DriveTuningConfig &config, uint32_t
 }
 #endif
 
+bool forEachWheel(std::function<void(int)> func)
+{
+	try
+	{
+		for(int i = 0; i < robot_num_wheels; i++)
+		{
+			func(i);
+		}
+	}
+	catch (...)
+	{
+		return false;
+	}
+	return true;
+}
 
 void robotStatusCallback(const rio_control_node::Robot_Status& msg)
 {
@@ -141,13 +157,31 @@ geometry_msgs::Twist get_twist_from_input(double percent_max_fwd_vel, double dir
 
 ck::swerve::SwerveDriveOutput calculate_swerve_output_from_twist(geometry_msgs::Twist twist)
 {
-	static ck::swerve::SwerveDriveOutput sdo;
-	memset(&sdo, 0, sizeof(ck::swerve::SwerveDriveOutput));
+	ck::swerve::SwerveDriveOutput sdo;
+	auto swrv = DriveHelper::calculate_swerve_outputs(twist, swerve_drive_config, 0.01);
+	for(int i = 0; i < robot_num_wheels; i++)
+	{
+		{
+			tf2::Quaternion q;
+			tf2::fromMsg(swrv[i].first.orientation, q);
+			double r = 0;
+			double p = 0;
+			double y = 0;
+			tf2::Matrix3x3(q).getRPY(r, p, y);
+			sdo.wheels[i].angle = y;
+		}
 
-	DriveHelper::calculate_swerve_outputs(twist, swerve_drive_config, 0.01);
+		{
+			double x = swrv[i].second.linear.x;
+			double y = swrv[i].second.linear.y;
+			sdo.wheels[i].velocity = ck::math::hypotenuse(x, y);
+		}
+	}
 
 	return sdo;
 }
+
+
 
 void turret_status_callback(const turret_node::Turret_Status& msg)
 {
@@ -160,79 +194,68 @@ void planner_callback(const quesadilla_auto_node::Planner_Output& msg)
 	drive_planner_output_msg = msg;
 }
 
-void publishOdometryData(const rio_control_node::Motor_Status& msg)
+void publishOdometryData(std::map<uint16_t, rio_control_node::Motor_Info>& motor_map)
 {
-	// double left_velocity = 0;
-	// double right_velocity = 0;
-	// for(std::vector<rio_control_node::Motor_Info>::const_iterator i = msg.motors.begin();
-	//     i != msg.motors.end();
-	// 	i++)
-	// {
-	// 	if ( (*i).id == left_master_id)
-	// 	{
-	// 		left_velocity = ((*i).sensor_velocity * wheel_diameter_inches * M_PI * INCHES_TO_METERS) / 60.0;
-	// 	}
-	// 	if ( (*i).id == right_master_id)
-	// 	{
-	// 		right_velocity = ((*i).sensor_velocity * wheel_diameter_inches * M_PI * INCHES_TO_METERS) / 60.0;
-	// 	}
-	// }
+	tf2::Vector3 wheel_vel_sum(0, 0, 0);
+	for (int i = 0; i < robot_num_wheels; i++)
+	{
+		double curr_vel_m_s = motor_map[drive_motor_ids[i]].sensor_velocity * M_PI * ck::math::inches_to_meters(wheel_diameter_inches);
+		double curr_angle = ck::math::normalize_to_2_pi(ck::math::deg2rad(motor_map[steering_motor_ids[i]].sensor_position * 360.0));
+		tf2::Vector3 wheel_vel(curr_vel_m_s * std::cos(curr_angle), curr_vel_m_s * std::sin(curr_angle), 0);
+		wheel_vel_sum += wheel_vel;
+	}
 
-	// double robot_velocity = (left_velocity + right_velocity) / 2.0;
-	// double angular_velocity = (right_velocity - left_velocity) / (robot_track_width_inches * INCHES_TO_METERS);
+	nav_msgs::Odometry odometry_data;
+    odometry_data.header.stamp = ros::Time::now();
+	odometry_data.header.frame_id = "odom";
+	odometry_data.child_frame_id = "base_link";
 
-	// nav_msgs::Odometry odometry_data;
-    // odometry_data.header.stamp = ros::Time::now();
-	// odometry_data.header.frame_id = "odom";
-	// odometry_data.child_frame_id = "base_link";
+	odometry_data.pose.pose.orientation.w = 0;
+	odometry_data.pose.pose.orientation.x = 0;
+	odometry_data.pose.pose.orientation.y = 0;
+	odometry_data.pose.pose.orientation.z = 0;
+	odometry_data.pose.pose.position.x = 0;
+	odometry_data.pose.pose.position.y = 0;
+	odometry_data.pose.pose.position.z = 0;
 
-	// odometry_data.pose.pose.orientation.w = 0;
-	// odometry_data.pose.pose.orientation.x = 0;
-	// odometry_data.pose.pose.orientation.y = 0;
-	// odometry_data.pose.pose.orientation.z = 0;
-	// odometry_data.pose.pose.position.x = left_velocity;
-	// odometry_data.pose.pose.position.y = right_velocity;
-	// odometry_data.pose.pose.position.z = 0;
+	odometry_data.twist.twist.linear.x = wheel_vel_sum.x();
+	odometry_data.twist.twist.linear.y = wheel_vel_sum.y();
+	odometry_data.twist.twist.linear.z = 0;
 
-	// odometry_data.twist.twist.linear.x = robot_velocity;
-	// odometry_data.twist.twist.linear.y = 0;
-	// odometry_data.twist.twist.linear.z = 0;
+	odometry_data.twist.twist.angular.x = 0;
+	odometry_data.twist.twist.angular.y = 0;
+	odometry_data.twist.twist.angular.z = 0;
 
-	// odometry_data.twist.twist.angular.x = 0;
-	// odometry_data.twist.twist.angular.y = 0;
-	// odometry_data.twist.twist.angular.z = angular_velocity;
+	odometry_data.pose.covariance =
+	   { 0.0001, 0.0, 0.0, 0.0, 0.0, 0.0,
+		 0.0, 0.0001, 0.0, 0.0, 0.0, 0.0,
+		 0.0, 0.0, 0.0001, 0.0, 0.0, 0.0,
+		 0.0, 0.0, 0.0, 0.0001, 0.0, 0.0,
+		 0.0, 0.0, 0.0, 0.0, 0.0001, 0.0,
+		 0.0, 0.0, 0.0, 0.0, 0.0, 0.0001,};
 
-	// odometry_data.pose.covariance =
-	//    { 0.0001, 0.0, 0.0, 0.0, 0.0, 0.0,
-	// 	 0.0, 0.0001, 0.0, 0.0, 0.0, 0.0,
-	// 	 0.0, 0.0, 0.0001, 0.0, 0.0, 0.0,
-	// 	 0.0, 0.0, 0.0, 0.0001, 0.0, 0.0,
-	// 	 0.0, 0.0, 0.0, 0.0, 0.0001, 0.0,
-	// 	 0.0, 0.0, 0.0, 0.0, 0.0, 0.0001,};
+	odometry_data.twist.covariance =
+	   { 0.001, 0.0, 0.0, 0.0, 0.0, 0.0,
+		 0.0, 0.001, 0.0, 0.0, 0.0, 0.0,
+		 0.0, 0.0, 0.001, 0.0, 0.0, 0.0,
+		 0.0, 0.0, 0.0, 0.001, 0.0, 0.0,
+		 0.0, 0.0, 0.0, 0.0, 0.001, 0.0,
+		 0.0, 0.0, 0.0, 0.0, 0.0, 0.001,};
 
-	// odometry_data.twist.covariance =
-	//    { 0.001, 0.0, 0.0, 0.0, 0.0, 0.0,
-	// 	 0.0, 0.001, 0.0, 0.0, 0.0, 0.0,
-	// 	 0.0, 0.0, 0.001, 0.0, 0.0, 0.0,
-	// 	 0.0, 0.0, 0.0, 0.001, 0.0, 0.0,
-	// 	 0.0, 0.0, 0.0, 0.0, 0.001, 0.0,
-	// 	 0.0, 0.0, 0.0, 0.0, 0.0, 0.001,};
-
-	// static ros::Publisher odometry_publisher = node->advertise<nav_msgs::Odometry>("/RobotOdometry", 1);
-	// odometry_publisher.publish(odometry_data);
+	static ros::Publisher odometry_publisher = node->advertise<nav_msgs::Odometry>("/RobotOdometry", 1);
+	odometry_publisher.publish(odometry_data);
 }
 
 void motorStatusCallback(const rio_control_node::Motor_Status& msg)
 {
 	static ros::Time prev_time(0);
-	static double prevLeftVel = 0;
-	static double prevRightVel = 0;
 	static std::map<uint16_t, rio_control_node::Motor_Info> motor_map;
-	publishOdometryData(msg);
 	for (const rio_control_node::Motor_Info& m : msg.motors)
 	{
 		motor_map[m.id] = m;
 	}
+
+	publishOdometryData(motor_map);
 
 	ros::Time curr_time = ros::Time::now();
 	double dt = (curr_time - prev_time).toSec();
@@ -249,20 +272,7 @@ void motorStatusCallback(const rio_control_node::Motor_Status& msg)
 	// 	swerve_drivetrain_diagnostics.rightRPMActual = motor_map[right_master_id].sensor_velocity;
 	// }
 
-	if (prev_time != ros::Time(0) && dt != 0)
-	{
-		swerve_drivetrain_diagnostics.actualAccelLeft = (swerve_drivetrain_diagnostics.actualVelocityLeft - prevLeftVel) / dt;
-		swerve_drivetrain_diagnostics.actualAccelRight = (swerve_drivetrain_diagnostics.actualVelocityRight - prevRightVel) / dt;
-	}
-	else
-	{
-		swerve_drivetrain_diagnostics.actualAccelLeft = 0;
-		swerve_drivetrain_diagnostics.actualAccelRight = 0;
-	}
 	swerve_drivetrain_diagnostics.dt = dt;
-	
-	prevLeftVel = swerve_drivetrain_diagnostics.actualAccelLeft;
-	prevRightVel = swerve_drivetrain_diagnostics.actualAccelRight;
 	prev_time = curr_time;
 
 	//Update swerve steering transforms
@@ -394,7 +404,7 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 #else
 		for (int i = 0; i < robot_num_wheels; i++)
 		{
-			drive_motors[i]->set( Motor::Control_Mode::PERCENT_OUTPUT, sdo.wheels[i].velocity * drive_velocity_kF, 0 );
+			drive_motors[i]->set( Motor::Control_Mode::PERCENT_OUTPUT, shoot_multiplier * sdo.wheels[i].velocity * drive_velocity_kF, 0 );
 			steering_motors[i]->set( Motor::Control_Mode::MOTION_MAGIC, sdo.wheels[i].angle, 0 );
 		}
 
@@ -438,7 +448,7 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 void initMotors()
 {
 	//Drive Motors
-    for (size_t i = 0; i < robot_num_wheels; i++)
+    for (int i = 0; i < robot_num_wheels; i++)
 	{
         Motor* drive_motor = new Motor( drive_motor_ids[i], (Motor::Motor_Type)motor_type );
 		drive_motor->set( Motor::Control_Mode::PERCENT_OUTPUT, 0, 0 );
@@ -461,7 +471,7 @@ void initMotors()
 	}
 
 	//Steering Motors
-    for (size_t i = 0; i < robot_num_wheels; i++)
+    for (int i = 0; i < robot_num_wheels; i++)
 	{
         Motor* steering_motor = new Motor( steering_motor_ids[i], (Motor::Motor_Type)motor_type );
 		steering_motor->set( Motor::Control_Mode::PERCENT_OUTPUT, 0, 0 );
@@ -514,14 +524,14 @@ int main(int argc, char **argv)
 	required_params_found &= n.getParam(CKSP(steering_sensor_inverted), steering_sensor_inverted);
 	required_params_found &= n.getParam(CKSP(robot_wheel_inches_from_center_x), robot_wheel_inches_from_center_x);
 	required_params_found &= n.getParam(CKSP(robot_wheel_inches_from_center_y), robot_wheel_inches_from_center_y);
-	required_params_found &= drive_motor_ids.size() == robot_num_wheels;
-	required_params_found &= steering_motor_ids.size() == robot_num_wheels;
-	required_params_found &= drive_motor_inverted.size() == robot_num_wheels;
-	required_params_found &= drive_sensor_inverted.size() == robot_num_wheels;
-	required_params_found &= steering_motor_inverted.size() == robot_num_wheels;
-	required_params_found &= steering_sensor_inverted.size() == robot_num_wheels;
-	required_params_found &= robot_wheel_inches_from_center_x.size() == robot_num_wheels;
-	required_params_found &= robot_wheel_inches_from_center_y.size() == robot_num_wheels;
+	required_params_found &= drive_motor_ids.size() == (size_t)robot_num_wheels;
+	required_params_found &= steering_motor_ids.size() == (size_t)robot_num_wheels;
+	required_params_found &= drive_motor_inverted.size() == (size_t)robot_num_wheels;
+	required_params_found &= drive_sensor_inverted.size() == (size_t)robot_num_wheels;
+	required_params_found &= steering_motor_inverted.size() == (size_t)robot_num_wheels;
+	required_params_found &= steering_sensor_inverted.size() == (size_t)robot_num_wheels;
+	required_params_found &= robot_wheel_inches_from_center_x.size() == (size_t)robot_num_wheels;
+	required_params_found &= robot_wheel_inches_from_center_y.size() == (size_t)robot_num_wheels;
 	required_params_found &= n.getParam(CKSP(robot_max_fwd_vel), robot_max_fwd_vel);
 	required_params_found &= n.getParam(CKSP(robot_max_ang_vel), robot_max_ang_vel);
 	required_params_found &= n.getParam(CKSP(motor_type), motor_type);
