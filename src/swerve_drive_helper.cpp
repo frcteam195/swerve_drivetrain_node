@@ -1,5 +1,5 @@
 #include "swerve_drive_helper.hpp"
-#include <ck_utilities/geometry.hpp>
+#include <ck_utilities/geometry/geometry.hpp>
 
 double DriveHelper::smallest_traversal(double angle, double target_angle)
 {

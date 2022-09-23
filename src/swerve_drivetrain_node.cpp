@@ -31,7 +31,7 @@
 #include "swerve_drive_helper.hpp"
 #include "swerve_drivetrain_node/Swerve_Drivetrain_Diagnostics.h"
 #include <quesadilla_auto_node/Planner_Output.h>
-#include <ck_utilities/geometry.hpp>
+#include <ck_utilities/geometry/geometry.hpp>
 
 //#define CHARACTERIZE_DRIVE
 #ifdef CHARACTERIZE_DRIVE
