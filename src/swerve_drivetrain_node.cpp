@@ -158,7 +158,7 @@ geometry_msgs::Twist get_twist_from_input(double percent_max_fwd_vel, double dir
 ck::swerve::SwerveDriveOutput calculate_swerve_output_from_twist(geometry_msgs::Twist twist)
 {
 	ck::swerve::SwerveDriveOutput sdo;
-	auto swrv = DriveHelper::calculate_swerve_outputs(twist, swerve_drive_config, 0.01);
+	auto swrv = calculate_swerve_outputs(twist, swerve_drive_config, 0.01);
 	for(int i = 0; i < robot_num_wheels; i++)
 	{
 		{
