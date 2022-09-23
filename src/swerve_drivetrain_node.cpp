@@ -31,7 +31,7 @@
 #include "swerve_drive_helper.hpp"
 #include "swerve_drivetrain_node/Swerve_Drivetrain_Diagnostics.h"
 #include <quesadilla_auto_node/Planner_Output.h>
-
+#include <ck_utilities/geometry.hpp>
 
 //#define CHARACTERIZE_DRIVE
 #ifdef CHARACTERIZE_DRIVE
@@ -277,7 +277,7 @@ void motorStatusCallback(const rio_control_node::Motor_Status& msg)
 void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 {
 	std::lock_guard<std::mutex> lock(mThreadCtrlLock);
-	
+
 	bool brake_mode = msg.drivetrain_brake;
 
 	switch (mRobotStatus)
