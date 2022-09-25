@@ -16,7 +16,6 @@
 #include <rio_control_node/Robot_Status.h>
 #include <rio_control_node/Motor_Control.h>
 #include <rio_control_node/Motor_Configuration.h>
-#include <turret_node/Turret_Status.h>
 #include <rio_control_node/Motor_Status.h>
 #include <ck_utilities/Motor.hpp>
 #include <ck_utilities/CKMath.hpp>
@@ -183,10 +182,10 @@ ck::swerve::SwerveDriveOutput calculate_swerve_output_from_twist(geometry_msgs::
 
 
 
-void turret_status_callback(const turret_node::Turret_Status& msg)
-{
-	about_to_shoot = msg.about_to_shoot;
-}
+// void turret_status_callback(const turret_node::Turret_Status& msg)
+// {
+// 	about_to_shoot = msg.about_to_shoot;
+// }
 
 void planner_callback(const quesadilla_auto_node::Planner_Output& msg)
 {
@@ -578,7 +577,7 @@ int main(int argc, char **argv)
 	ros::Subscriber motorStatus = node->subscribe("MotorStatus", 1, motorStatusCallback);
 	ros::Subscriber robotStatus = node->subscribe("RobotStatus", 1, robotStatusCallback);
 	ros::Subscriber planner_sub = node->subscribe("/QuesadillaPlannerOutput", 1, planner_callback);
-	ros::Subscriber turret_status_subscriber = node->subscribe("/TurretStatus", 1, turret_status_callback);
+	// ros::Subscriber turret_status_subscriber = node->subscribe("/TurretStatus", 1, turret_status_callback);
 #ifdef CHARACTERIZE_DRIVE
 	ros::Subscriber drive_characterization_subscriber = node->subscribe("/DriveCharacterizationOutput", 1, drive_characterization_callback);
 #endif
