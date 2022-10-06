@@ -524,7 +524,6 @@ int main(int argc, char **argv)
 	required_params_found &= n.getParam(CKSP(voltage_comp_saturation), voltage_comp_saturation);
 	required_params_found &= n.getParam(CKSP(voltage_comp_enabled), voltage_comp_enabled);
 	required_params_found &= n.getParam(CKSP(brake_mode_default), brake_mode_default);
-	required_params_found &= n.getParam(CKSP(gear_ratio_motor_to_output_shaft), gear_ratio_motor_to_output_shaft);
 	required_params_found &= n.getParam(CKSP(wheel_diameter_inches), wheel_diameter_inches);
 	required_params_found &= n.getParam(CKSP(robot_track_width_inches), robot_track_width_inches);
 	required_params_found &= n.getParam(CKSP(robot_track_length_inches), robot_track_length_inches);
