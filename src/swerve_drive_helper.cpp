@@ -1,5 +1,8 @@
 #include "swerve_drive_helper.hpp"
 #include <ck_utilities/geometry/geometry_ros_helpers.hpp>
+#include <sstream>
+#include <ros/ros.h>
+#include <iostream>
 
 static double smallest_traversal(double angle, double target_angle)
 {
@@ -12,11 +15,52 @@ static double smallest_traversal(double angle, double target_angle)
     return right;
 }
 
+std::ostream& operator<<(std::ostream& os, const std::vector<std::pair<geometry::Pose, geometry::Twist>>& value)
+{   
+    std::stringstream s;
+    s << "---------------------------------" << std::endl;
+    s << "Pose:Twist Vector" << std::endl;
+    for (std::vector<std::pair<geometry::Pose, geometry::Twist>>::const_iterator i = value.begin();
+         i != value.end();
+         i++)
+    {
+        s << (*i).first << " : " << (*i).second << std::endl;
+    }   
+    s << "---------------------------------" << std::endl;
+    os << s.str();
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const std::vector<geometry::Transform>& value)
+{
+    std::stringstream s;
+    s << "---------------------------------" << std::endl;
+    s << "Transform Vector" << std::endl;
+    for (std::vector<geometry::Transform>::const_iterator i = value.begin();
+         i != value.end();
+         i++)
+    {
+        s << (*i) << std::endl;
+    }   
+    s << "---------------------------------" << std::endl;
+    os << s.str();
+    return os;
+}
+
 std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs_internal
     (geometry::Twist desired_twist,
     std::vector<geometry::Transform> wheel_transforms,
     float projection_time_s)
 {
+    std::stringstream inputs;
+    inputs << "calculate_swerve_outputs_internal" << std::endl;
+    inputs << "Inputs: " << std::endl;
+    inputs << "Desired Twist: " << desired_twist << std::endl;
+    inputs << "Wheel Transforms: " << wheel_transforms << std::endl;
+    inputs << "Projection Time s:" << projection_time_s << std::endl;
+    inputs << std::endl;
+    ROS_INFO("%s", inputs.str().c_str());
+
     std::vector<std::pair<geometry::Pose, geometry::Twist>> results;
 
     geometry::Pose robot_initial_pose;
@@ -69,6 +113,12 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
         (*i).first.position *= ratio;
         (*i).second.linear *= ratio;
     }
+
+    std::stringstream outputs;
+    outputs << "Outputs:" << std::endl;
+    outputs << results << std::endl;
+    outputs << "End calculate_swerve_outputs_internal" << std::endl;
+    ROS_INFO("%s", outputs.str().c_str());
 
     return results;
 }
