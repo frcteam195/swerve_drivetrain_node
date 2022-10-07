@@ -16,7 +16,7 @@ static double smallest_traversal(double angle, double target_angle)
 }
 
 std::ostream& operator<<(std::ostream& os, const std::vector<std::pair<geometry::Pose, geometry::Twist>>& value)
-{   
+{
     std::stringstream s;
     s << "---------------------------------" << std::endl;
     s << "Pose:Twist Vector" << std::endl;
@@ -25,7 +25,7 @@ std::ostream& operator<<(std::ostream& os, const std::vector<std::pair<geometry:
          i++)
     {
         s << (*i).first << " : " << (*i).second << std::endl;
-    }   
+    }
     s << "---------------------------------" << std::endl;
     os << s.str();
     return os;
@@ -41,7 +41,7 @@ std::ostream& operator<<(std::ostream& os, const std::vector<geometry::Transform
          i++)
     {
         s << (*i) << std::endl;
-    }   
+    }
     s << "---------------------------------" << std::endl;
     os << s.str();
     return os;
@@ -66,6 +66,13 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
     geometry::Pose robot_initial_pose;
     geometry::Pose robot_projected_pose = robot_initial_pose.twist(desired_twist, projection_time_s);
 
+    std::stringstream k1;
+    k1 << "robot_initial_pose: " << robot_initial_pose << std::endl;
+    ROS_INFO("%s", k1.str().c_str());
+    std::stringstream k2;
+    k2 << "robot_projected_pose: " << robot_projected_pose << std::endl;
+    ROS_INFO("%s", k2.str().c_str());
+
     float largest_hypot = 0;
 
     for(std::vector<geometry::Transform>::iterator i = wheel_transforms.begin();
@@ -74,8 +81,19 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
     {
         geometry::Pose wheel_initial_pose = robot_initial_pose.transform(*i);
         geometry::Pose wheel_projected_pose = robot_projected_pose.transform(*i);
+        std::stringstream s0;
+        s0 << "I: " << (*i) << std::endl;
+        ROS_INFO("%s", s0.str().c_str());
 
         geometry::Transform wheel_transformation = wheel_initial_pose.get_Transform(wheel_projected_pose);
+
+        std::stringstream s1;
+        s1 << "wheel_transformation: " << wheel_transformation << std::endl;
+        ROS_INFO("%s", s1.str().c_str());
+        std::stringstream s2;
+        s2 << "wheel_projected_pose: " << wheel_projected_pose << std::endl;
+        ROS_INFO("%s", s2.str().c_str());
+
         largest_hypot = std::max(wheel_transformation.linear.norm(), largest_hypot);
         float wheel_end_yaw = wheel_transformation.get_Rotation_To().yaw();
 
@@ -85,9 +103,15 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
         float normal_smallest_traversal = smallest_traversal(initial_yaw, wheel_end_yaw);
         float mirror_smallest_traversal = smallest_traversal(mirrored_initial_yaw, wheel_end_yaw);
 
+        ROS_INFO("initial_yaw: %f\n", initial_yaw);
+        ROS_INFO("wheel_end_yaw: %f\n", wheel_end_yaw);
+        ROS_INFO("mirrored_initial_yaw: %f\n", mirrored_initial_yaw);
+        ROS_INFO("normal_smallest_traversal: %f\n", normal_smallest_traversal);
+        ROS_INFO("mirror_smallest_traversal: %f\n", mirror_smallest_traversal);
 
         float smallest_overall_traversal = std::fabs(normal_smallest_traversal) < std::fabs(mirror_smallest_traversal) ? normal_smallest_traversal : mirror_smallest_traversal;
 
+        ROS_INFO("Smallest Traversal %f\n", smallest_overall_traversal);
         geometry::Rotation smallest_traversal_pose;
         smallest_traversal_pose.roll(0);
         smallest_traversal_pose.pitch(0);
@@ -96,7 +120,7 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
         std::pair<geometry::Pose, geometry::Twist> wheel_result;
         wheel_result.first.position = wheel_projected_pose.position;
         wheel_result.first.orientation = smallest_traversal_pose;
-        wheel_result.second.linear = wheel_projected_pose.position / projection_time_s;
+        wheel_result.second.linear = wheel_transformation.linear / projection_time_s;
         wheel_result.second.angular.roll(0);
         wheel_result.second.angular.pitch(0);
         wheel_result.second.angular.yaw(smallest_overall_traversal / projection_time_s);
@@ -109,9 +133,12 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
         i++)
     {
         double hypot = (*i).first.position.norm();
-        double ratio = hypot / largest_hypot;
-        (*i).first.position *= ratio;
-        (*i).second.linear *= ratio;
+        if(largest_hypot >= 0.01)
+        {
+            double ratio = hypot / largest_hypot;
+            (*i).first.position *= ratio;
+            (*i).second.linear *= ratio;
+        }
     }
 
     std::stringstream outputs;

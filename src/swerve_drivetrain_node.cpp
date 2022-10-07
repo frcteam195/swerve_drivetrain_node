@@ -327,6 +327,7 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
     break;
 	case rio_control_node::Robot_Status::TELEOP:
 	{
+		ROS_INFO("Testy test\n");
 		ck::swerve::SwerveDriveOutput sdo;
 		float shoot_multiplier = 1.0;
 		if(about_to_shoot)
@@ -339,6 +340,7 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 		{
 			case DriveControlMode::SWERVE_VELOCITY_FEEDFORWARD:
 			{
+				ROS_INFO("Got into the switch\n");
 				geometry_msgs::Twist twist = get_twist_from_input(msg.drivetrain_swerve_percent_fwd_vel, msg.drivetrain_swerve_direction, msg.drivetrain_swerve_percent_angular_rot);
 				sdo = calculate_swerve_output_from_twist(twist);
 				break;
