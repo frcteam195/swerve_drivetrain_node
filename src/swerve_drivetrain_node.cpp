@@ -469,6 +469,9 @@ void initMotors()
 		steering_motor->config().set_kI(steering_velocity_kI);
 		steering_motor->config().set_kD(steering_velocity_kD);
 		steering_motor->config().set_kF(steering_velocity_kF);
+		steering_motor->config().set_motion_cruise_velocity(steering_motion_cruise_velocity);
+		steering_motor->config().set_motion_acceleration(steering_motion_accel);
+		steering_motor->config().set_motion_s_curve_strength(steering_motion_s_curve_strength);
 		steering_motor->config().set_i_zone(steering_velocity_iZone);
 		steering_motor->config().set_max_i_accum(steering_velocity_maxIAccum);
 		steering_motor->config().set_closed_loop_ramp(steering_closed_loop_ramp);
