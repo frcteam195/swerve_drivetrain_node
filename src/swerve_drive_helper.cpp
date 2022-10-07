@@ -67,13 +67,11 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
     log << "robot_initial_pose: " << robot_initial_pose;
     log << "robot_projected_pose: " << robot_projected_pose;
 
-    float largest_hypot = 0;
-
     for(std::vector<geometry::Transform>::iterator i = wheel_transforms.begin();
         i != wheel_transforms.end();
         i++)
     {
-        // log << "----------" << std::endl;
+        log << "----------" << std::endl;
         geometry::Pose wheel_initial_pose = robot_initial_pose.transform(*i);
         geometry::Pose wheel_projected_pose = robot_projected_pose.transform(*i);
         std::stringstream s0;
@@ -82,9 +80,8 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
         geometry::Transform wheel_transformation = wheel_initial_pose.get_Transform(wheel_projected_pose);
 
         // log << "wheel_transformation: " << wheel_transformation;
-        // log << "wheel_projected_pose: " << wheel_projected_pose;
+        log << "wheel_projected_pose: " << wheel_projected_pose;
 
-        largest_hypot = std::max(wheel_transformation.linear.norm(), largest_hypot);
         float wheel_end_yaw = wheel_transformation.get_Rotation_To().yaw();
 
         float initial_yaw = ck::math::normalize_to_2_pi((*i).angular.yaw());
@@ -100,6 +97,7 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
         // log << "mirror_smallest_traversal: " << mirror_smallest_traversal << std::endl;
 
         float smallest_overall_traversal = std::fabs(normal_smallest_traversal) < std::fabs(mirror_smallest_traversal) ? normal_smallest_traversal : mirror_smallest_traversal;
+        bool flipped = std::fabs(mirror_smallest_traversal) < std::fabs(normal_smallest_traversal);
 
         // log << "Smallest Traversal" << smallest_overall_traversal << std::endl;
         geometry::Rotation smallest_traversal_pose;
@@ -110,25 +108,13 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
         std::pair<geometry::Pose, geometry::Twist> wheel_result;
         wheel_result.first.position = wheel_projected_pose.position;
         wheel_result.first.orientation = smallest_traversal_pose;
-        wheel_result.second.linear = wheel_transformation.linear / projection_time_s;
+        wheel_result.second.linear.setZero();
+        wheel_result.second.linear[0] = wheel_transformation.linear.norm() / projection_time_s * (flipped ? -1.0 : 1.0);
         wheel_result.second.angular.roll(0);
         wheel_result.second.angular.pitch(0);
         wheel_result.second.angular.yaw(smallest_overall_traversal / projection_time_s);
 
         results.push_back(wheel_result);
-    }
-
-    for(std::vector<std::pair<geometry::Pose, geometry::Twist>>::iterator i = results.begin();
-        i != results.end();
-        i++)
-    {
-        double hypot = (*i).first.position.norm();
-        if(largest_hypot >= 0.01)
-        {
-            double ratio = hypot / largest_hypot;
-            (*i).first.position *= ratio;
-            (*i).second.linear *= ratio;
-        }
     }
 
     log << "----------" << std::endl;

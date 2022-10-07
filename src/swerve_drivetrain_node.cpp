@@ -172,9 +172,7 @@ ck::swerve::SwerveDriveOutput calculate_swerve_output_from_twist(geometry_msgs::
 		}
 
 		{
-			double x = swrv[i].second.linear.x;
-			double y = swrv[i].second.linear.y;
-			wheel.velocity = ck::math::hypotenuse(x, y);
+			wheel.velocity = swrv[i].second.linear.x;
 		}
 		sdo.wheels.push_back(wheel);
 	}
