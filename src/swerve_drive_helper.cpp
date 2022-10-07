@@ -150,6 +150,55 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
     return results;
 }
 
+std::ostream& operator<<(std::ostream& os, const geometry_msgs::Quaternion& value)
+{
+    os << "W: " << value.w << " X: " << value.x << " Y: " << value.y << " Z: " << value.z;
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const geometry_msgs::Point& value)
+{
+    os << " X: " << value.x << " Y: " << value.y << " Z: " << value.z;
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const geometry_msgs::Pose& value)
+{
+    os << "Orientation: " << value.orientation << std::endl;
+    os << "Position: " << value.position << std::endl;
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const geometry_msgs::Vector3& value)
+{
+    os << " X: " << value.x << " Y: " << value.y << " Z: " << value.z;
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const geometry_msgs::Twist& value)
+{
+    os << "Angular: " << value.angular << std::endl;
+    os << "Linear: " << value.linear << std::endl;
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const std::vector<std::pair<geometry_msgs::Pose, geometry_msgs::Twist>>& value)
+{
+    std::stringstream s;
+    s << "---------------------------------" << std::endl;
+    s << "geometry_msgs::Pose, geometry_msgs::Twist Vector" << std::endl;
+    for (std::vector<std::pair<geometry_msgs::Pose, geometry_msgs::Twist>>::const_iterator i = value.begin();
+         i != value.end();
+         i++)
+    {
+        s << "Pose: " << std::endl << (*i).first << std::endl;
+        s << "Twist: " << std::endl << (*i).second << std::endl;
+    }
+    s << "---------------------------------" << std::endl;
+    os << s.str();
+    return os;
+}
+
 std::vector<std::pair<geometry_msgs::Pose, geometry_msgs::Twist>> calculate_swerve_outputs
     (geometry_msgs::Twist desired_twist,
     ck::swerve::SwerveDriveConfig& wheel_transforms,
@@ -167,6 +216,7 @@ std::vector<std::pair<geometry_msgs::Pose, geometry_msgs::Twist>> calculate_swer
 
     std::vector<std::pair<geometry::Pose, geometry::Twist>> raw_results;
     raw_results = calculate_swerve_outputs_internal(desired_twist_, wheel_transforms_, projection_time_s);
+    ROS_INFO("escaped function\n");
     std::vector<std::pair<geometry_msgs::Pose, geometry_msgs::Twist>> results;
 
     for (std::vector<std::pair<geometry::Pose, geometry::Twist>>::iterator i = raw_results.begin();
@@ -178,6 +228,10 @@ std::vector<std::pair<geometry_msgs::Pose, geometry_msgs::Twist>> calculate_swer
                 (geometry::to_msg((*i).first), geometry::to_msg((*i).second));
         results.push_back(entry);
     }
+    ROS_INFO("Publishing results\n");
+    std::stringstream s;
+    s << results;
+    ROS_INFO("Results\n%s", s.str().c_str());
 
     return results;
 }
