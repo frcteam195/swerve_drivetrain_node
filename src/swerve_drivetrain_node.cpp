@@ -158,6 +158,7 @@ ck::swerve::SwerveDriveOutput calculate_swerve_output_from_twist(geometry_msgs::
 {
 	ck::swerve::SwerveDriveOutput sdo;
 	auto swrv = calculate_swerve_outputs(twist, swerve_drive_config, 0.01);
+	swerve_drivetrain_diagnostics.target_motor_rotation.clear();
 	for(int i = 0; i < robot_num_wheels; i++)
 	{
 		ck::swerve::Wheel wheel;
@@ -169,6 +170,7 @@ ck::swerve::SwerveDriveOutput calculate_swerve_output_from_twist(geometry_msgs::
 			double y = 0;
 			tf2::Matrix3x3(q).getRPY(r, p, y);
 			wheel.angle = y;
+			swerve_drivetrain_diagnostics.target_motor_rotation.push_back(y);
 		}
 
 		{
@@ -263,13 +265,14 @@ void motorStatusCallback(const rio_control_node::Motor_Status& msg)
 
 	swerve_drivetrain_diagnostics.dt = dt;
 	prev_time = curr_time;
-
+	swerve_drivetrain_diagnostics.actual_motor_rotation.clear();
 	//Update swerve steering transforms
 	for (int i = 0; i < robot_num_wheels; i++)
 	{
 		tf2::Quaternion quat_tf;
 		quat_tf.setRPY(0, 0, ck::math::normalize_to_2_pi(ck::math::deg2rad(motor_map[steering_motor_ids[i]].sensor_position * 360.0)));
 		swerve_drive_config.wheels[i].transform.rotation = tf2::toMsg(quat_tf);
+		swerve_drivetrain_diagnostics.actual_motor_rotation.push_back(ck::math::normalize_to_2_pi(ck::math::deg2rad(motor_map[steering_motor_ids[i]].sensor_position * 360.0)));
 	}
 }
 

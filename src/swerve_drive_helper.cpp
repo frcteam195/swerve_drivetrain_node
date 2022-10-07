@@ -81,7 +81,7 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
 
         geometry::Transform wheel_transformation = wheel_initial_pose.get_Transform(wheel_projected_pose);
 
-        // log << "wheel_transformation: " << wheel_transformation;
+        log << "wheel_transformation: " << wheel_transformation;
         log << "wheel_projected_pose: " << wheel_projected_pose;
 
         float wheel_end_yaw = wheel_transformation.get_Rotation_To().yaw();
@@ -92,20 +92,26 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
         float normal_smallest_traversal = smallest_traversal(initial_yaw, wheel_end_yaw);
         float mirror_smallest_traversal = smallest_traversal(mirrored_initial_yaw, wheel_end_yaw);
 
-        // log << "initial_yaw: " << initial_yaw << std::endl;
-        // log << "wheel_end_yaw: " << wheel_end_yaw << std::endl;
-        // log << "mirrored_initial_yaw: " << mirrored_initial_yaw << std::endl;
-        // log << "normal_smallest_traversal: " << normal_smallest_traversal << std::endl;
-        // log << "mirror_smallest_traversal: " << mirror_smallest_traversal << std::endl;
+        log << "initial_yaw: " << initial_yaw << std::endl;
+        log << "wheel_end_yaw: " << wheel_end_yaw << std::endl;
+        log << "mirrored_initial_yaw: " << mirrored_initial_yaw << std::endl;
+        log << "normal_smallest_traversal: " << normal_smallest_traversal << std::endl;
+        log << "mirror_smallest_traversal: " << mirror_smallest_traversal << std::endl;
 
         float smallest_overall_traversal = std::fabs(normal_smallest_traversal) < std::fabs(mirror_smallest_traversal) ? normal_smallest_traversal : mirror_smallest_traversal;
         bool flipped = std::fabs(mirror_smallest_traversal) < std::fabs(normal_smallest_traversal);
 
-        // log << "Smallest Traversal" << smallest_overall_traversal << std::endl;
+        log << "Smallest Traversal" << smallest_overall_traversal << std::endl;
         geometry::Rotation smallest_traversal_pose;
         smallest_traversal_pose.roll(0);
         smallest_traversal_pose.pitch(0);
         smallest_traversal_pose.yaw(initial_yaw + smallest_overall_traversal);
+
+        if(desired_twist.linear.norm() < 0.01 && desired_twist.angular.norm() < 0.01)
+        {
+            smallest_traversal_pose.yaw(initial_yaw);
+        }
+        smallest_traversal_pose.yaw(ck::math::normalize_to_2_pi(smallest_traversal_pose.yaw()));
 
         std::pair<geometry::Pose, geometry::Twist> wheel_result;
         wheel_result.first.position = wheel_projected_pose.position;
@@ -128,7 +134,7 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
          i != results.end();
          i++)
     {
-        if (std::abs(largest_speed_demand) > 0.001 && 
+        if (std::abs(largest_speed_demand) > 0.001 &&
             largest_speed_demand > 3.5 && // these 3.5s should be the kinematic limit, not hard coded, will fix later MGT
             std::abs(3.5) > 0.001)
         {

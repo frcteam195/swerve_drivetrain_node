@@ -1,8 +1,3 @@
-float64[] rawDriveMotorOutput
-float64[] rawSteeringMotorOutput
-float64[] targetVelocity
-float64[] targetSteeringAngle
-float64[] actualDriveVelocity
-float64[] actualSteeringAngle
-float64[] driveAppliedArbFF
+float32[] target_motor_rotation
+float32[] actual_motor_rotation
 float64 dt
