@@ -169,8 +169,8 @@ ck::swerve::SwerveDriveOutput calculate_swerve_output_from_twist(geometry_msgs::
 			double p = 0;
 			double y = 0;
 			tf2::Matrix3x3(q).getRPY(r, p, y);
-			wheel.angle = y;
-			swerve_drivetrain_diagnostics.target_motor_rotation.push_back(y);
+			wheel.angle = ck::math::normalize_to_2_pi(y);
+			swerve_drivetrain_diagnostics.target_motor_rotation.push_back(wheel.angle);
 		}
 
 		{
