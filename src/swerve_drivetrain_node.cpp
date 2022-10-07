@@ -156,6 +156,7 @@ geometry_msgs::Twist get_twist_from_input(double percent_max_fwd_vel, double dir
 
 ck::swerve::SwerveDriveOutput calculate_swerve_output_from_twist(geometry_msgs::Twist twist)
 {
+	static double prev_wheel_angle[4] = {0, 0, 0, 0};
 	ck::swerve::SwerveDriveOutput sdo;
 	auto swrv = calculate_swerve_outputs(twist, swerve_drive_config, 0.01);
 	swerve_drivetrain_diagnostics.target_motor_rotation.clear();
@@ -177,6 +178,31 @@ ck::swerve::SwerveDriveOutput calculate_swerve_output_from_twist(geometry_msgs::
 			wheel.velocity = swrv[i].second.linear.x;
 		}
 		sdo.wheels.push_back(wheel);
+	}
+
+	bool is_zero = true;
+	for (int i = 0; i < robot_num_wheels; i++)
+	{
+		if (sdo.wheels[i].velocity != 0)
+		{
+			is_zero = false;
+			break;
+		}
+	}
+
+	if (is_zero)
+	{
+		for (int i = 0; i < robot_num_wheels; i++)
+		{
+			sdo.wheels[i].angle = prev_wheel_angle[i];
+		}
+	}
+	else
+	{
+		for (int i = 0; i < robot_num_wheels; i++)
+		{
+			prev_wheel_angle[i] = sdo.wheels[i].angle;
+		}
 	}
 
 	return sdo;
@@ -392,7 +418,10 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 		for (int i = 0; i < robot_num_wheels; i++)
 		{
 			drive_motors[i]->set( Motor::Control_Mode::PERCENT_OUTPUT, shoot_multiplier * sdo.wheels[i].velocity * drive_velocity_kF, 0 );
-			steering_motors[i]->set( Motor::Control_Mode::MOTION_MAGIC, sdo.wheels[i].angle, 0 );
+			// if (std::abs(sdo.wheels[i].angle - prev_wheel_angle[i]) > 0)
+			// {
+				steering_motors[i]->set( Motor::Control_Mode::MOTION_MAGIC, sdo.wheels[i].angle, 0 );
+			// }
 		}
 
         // leftMasterMotor->set( Motor::Control_Mode::PERCENT_OUTPUT, left, 0 );
