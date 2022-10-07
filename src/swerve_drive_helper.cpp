@@ -116,9 +116,9 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
         wheel_result.second.angular.pitch(0);
         wheel_result.second.angular.yaw(smallest_overall_traversal / projection_time_s);
 
-        if (wheel_result.second.linear[0] > largest_speed_demand)
+        if (std::abs(wheel_result.second.linear[0]) > largest_speed_demand)
         {
-            largest_speed_demand = wheel_result.second.linear[0];
+            largest_speed_demand = std::abs(wheel_result.second.linear[0]);
         }
 
         results.push_back(wheel_result);
@@ -129,10 +129,10 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
          i++)
     {
         if (std::abs(largest_speed_demand) > 0.001 && 
-            largest_speed_demand > desired_twist.linear.norm() &&
-            std::abs(desired_twist.linear.norm()) > 0.001)
+            largest_speed_demand > 3.5 && // these 3.5s should be the kinematic limit, not hard coded, will fix later MGT
+            std::abs(3.5) > 0.001)
         {
-            float ratio = std::abs(desired_twist.linear.norm() / largest_speed_demand);
+            float ratio = std::abs(3.5 / largest_speed_demand);
             (*i).second.linear[0] *= ratio;
         }
     }
