@@ -276,9 +276,9 @@ void motorStatusCallback(const rio_control_node::Motor_Status& msg)
 void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 {
 	std::lock_guard<std::mutex> lock(mThreadCtrlLock);
-
+	ROS_INFO("Start HMI Callback");
 	bool brake_mode = msg.drivetrain_brake;
-
+	ROS_INFO("Robot Mode: %d", mRobotStatus);
 	switch (mRobotStatus)
 	{
 	case rio_control_node::Robot_Status::AUTONOMOUS:
@@ -390,11 +390,13 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 			}
 		}
 #else
+		ROS_INFO("Setting Motors");
 		for (int i = 0; i < robot_num_wheels; i++)
 		{
 			drive_motors[i]->set( Motor::Control_Mode::PERCENT_OUTPUT, shoot_multiplier * sdo.wheels[i].velocity * drive_velocity_kF, 0 );
 			steering_motors[i]->set( Motor::Control_Mode::MOTION_MAGIC, sdo.wheels[i].angle, 0 );
 		}
+		ROS_INFO("Set Motors");
 
         // leftMasterMotor->set( Motor::Control_Mode::PERCENT_OUTPUT, left, 0 );
 		// rightMasterMotor->set( Motor::Control_Mode::PERCENT_OUTPUT, right, 0 );
@@ -427,9 +429,10 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 			mF->config().apply();
 		}
 	}
-
+	ROS_INFO("Set BrakeCoast");
 	static ros::Publisher swerve_drivetrain_diagnostics_publisher = node->advertise<swerve_drivetrain_node::Swerve_Drivetrain_Diagnostics>("/DrivetrainDiagnostics", 1);
 	swerve_drivetrain_diagnostics_publisher.publish(swerve_drivetrain_diagnostics);
+	ROS_INFO("End of HMI Callback");
 }
 
 
