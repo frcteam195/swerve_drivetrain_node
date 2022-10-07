@@ -67,6 +67,8 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
     log << "robot_initial_pose: " << robot_initial_pose;
     log << "robot_projected_pose: " << robot_projected_pose;
 
+    float largest_speed_demand = 0;
+
     for(std::vector<geometry::Transform>::iterator i = wheel_transforms.begin();
         i != wheel_transforms.end();
         i++)
@@ -114,7 +116,25 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
         wheel_result.second.angular.pitch(0);
         wheel_result.second.angular.yaw(smallest_overall_traversal / projection_time_s);
 
+        if (wheel_result.second.linear[0] > largest_speed_demand)
+        {
+            largest_speed_demand = wheel_result.second.linear[0];
+        }
+
         results.push_back(wheel_result);
+    }
+
+    for (std::vector<std::pair<geometry::Pose, geometry::Twist>>::iterator i = results.begin();
+         i != results.end();
+         i++)
+    {
+        if (std::abs(largest_speed_demand) > 0.001 && 
+            largest_speed_demand > desired_twist.linear.norm() &&
+            std::abs(desired_twist.linear.norm()) > 0.001)
+        {
+            float ratio = std::abs(desired_twist.linear.norm() / largest_speed_demand);
+            (*i).second.linear[0] *= ratio;
+        }
     }
 
     log << "----------" << std::endl;
