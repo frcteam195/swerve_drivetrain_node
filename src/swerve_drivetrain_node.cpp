@@ -160,6 +160,7 @@ ck::swerve::SwerveDriveOutput calculate_swerve_output_from_twist(geometry_msgs::
 	auto swrv = calculate_swerve_outputs(twist, swerve_drive_config, 0.01);
 	for(int i = 0; i < robot_num_wheels; i++)
 	{
+		ck::swerve::Wheel wheel;
 		{
 			tf2::Quaternion q;
 			tf2::fromMsg(swrv[i].first.orientation, q);
@@ -167,14 +168,15 @@ ck::swerve::SwerveDriveOutput calculate_swerve_output_from_twist(geometry_msgs::
 			double p = 0;
 			double y = 0;
 			tf2::Matrix3x3(q).getRPY(r, p, y);
-			sdo.wheels[i].angle = y;
+			wheel.angle = y;
 		}
 
 		{
 			double x = swrv[i].second.linear.x;
 			double y = swrv[i].second.linear.y;
-			sdo.wheels[i].velocity = ck::math::hypotenuse(x, y);
+			wheel.velocity = ck::math::hypotenuse(x, y);
 		}
+		sdo.wheels.push_back(wheel);
 	}
 
 	return sdo;
@@ -276,9 +278,7 @@ void motorStatusCallback(const rio_control_node::Motor_Status& msg)
 void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 {
 	std::lock_guard<std::mutex> lock(mThreadCtrlLock);
-	ROS_INFO("Start HMI Callback");
 	bool brake_mode = msg.drivetrain_brake;
-	ROS_INFO("Robot Mode: %d", mRobotStatus);
 	switch (mRobotStatus)
 	{
 	case rio_control_node::Robot_Status::AUTONOMOUS:
@@ -327,7 +327,6 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
     break;
 	case rio_control_node::Robot_Status::TELEOP:
 	{
-		ROS_INFO("Testy test\n");
 		ck::swerve::SwerveDriveOutput sdo;
 		float shoot_multiplier = 1.0;
 		if(about_to_shoot)
@@ -340,7 +339,6 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 		{
 			case DriveControlMode::SWERVE_VELOCITY_FEEDFORWARD:
 			{
-				ROS_INFO("Got into the switch\n");
 				geometry_msgs::Twist twist = get_twist_from_input(msg.drivetrain_swerve_percent_fwd_vel, msg.drivetrain_swerve_direction, msg.drivetrain_swerve_percent_angular_rot);
 				sdo = calculate_swerve_output_from_twist(twist);
 				break;
@@ -390,13 +388,11 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 			}
 		}
 #else
-		ROS_INFO("Setting Motors");
 		for (int i = 0; i < robot_num_wheels; i++)
 		{
 			drive_motors[i]->set( Motor::Control_Mode::PERCENT_OUTPUT, shoot_multiplier * sdo.wheels[i].velocity * drive_velocity_kF, 0 );
 			steering_motors[i]->set( Motor::Control_Mode::MOTION_MAGIC, sdo.wheels[i].angle, 0 );
 		}
-		ROS_INFO("Set Motors");
 
         // leftMasterMotor->set( Motor::Control_Mode::PERCENT_OUTPUT, left, 0 );
 		// rightMasterMotor->set( Motor::Control_Mode::PERCENT_OUTPUT, right, 0 );
@@ -429,10 +425,8 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 			mF->config().apply();
 		}
 	}
-	ROS_INFO("Set BrakeCoast");
 	static ros::Publisher swerve_drivetrain_diagnostics_publisher = node->advertise<swerve_drivetrain_node::Swerve_Drivetrain_Diagnostics>("/DrivetrainDiagnostics", 1);
 	swerve_drivetrain_diagnostics_publisher.publish(swerve_drivetrain_diagnostics);
-	ROS_INFO("End of HMI Callback");
 }
 
 
