@@ -4,7 +4,7 @@
 #include <ros/ros.h>
 #include <iostream>
 
-static double smallest_traversal(double angle, double target_angle)
+double smallest_traversal(double angle, double target_angle)
 {
     double left = -ck::math::normalize_to_2_pi(angle - target_angle);
     double right = ck::math::normalize_to_2_pi(target_angle - angle);
@@ -84,7 +84,7 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
         log << "wheel_transformation: " << wheel_transformation;
         log << "wheel_projected_pose: " << wheel_projected_pose;
 
-        float wheel_end_yaw = wheel_transformation.get_Rotation_To().yaw();
+        float wheel_end_yaw = ck::math::normalize_to_2_pi(wheel_transformation.get_Rotation_To().yaw());
 
         float initial_yaw = ck::math::normalize_to_2_pi((*i).angular.yaw());
         float mirrored_initial_yaw = ck::math::normalize_to_2_pi(initial_yaw + M_PI);
@@ -105,7 +105,7 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
         geometry::Rotation smallest_traversal_pose;
         smallest_traversal_pose.roll(0);
         smallest_traversal_pose.pitch(0);
-        smallest_traversal_pose.yaw(initial_yaw + smallest_overall_traversal);
+        smallest_traversal_pose.yaw(ck::math::normalize_to_2_pi(initial_yaw + smallest_overall_traversal));
 
         if(desired_twist.linear.norm() < 0.01 && desired_twist.angular.norm() < 0.01)
         {

@@ -16,3 +16,5 @@ std::vector<std::pair<geometry_msgs::Pose, geometry_msgs::Twist>> calculate_swer
     (geometry_msgs::Twist desired_twist,
     ck::swerve::SwerveDriveConfig& wheel_transforms,
     double projection_time_s);
+
+double smallest_traversal(double angle, double target_angle);
