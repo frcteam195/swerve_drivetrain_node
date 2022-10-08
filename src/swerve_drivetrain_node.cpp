@@ -446,7 +446,8 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 		s << std::endl << "Motor Outputs:" << std::endl;
 		for (int i = 0; i < robot_num_wheels; i++)
 		{
-			drive_motors[i]->set( Motor::Control_Mode::PERCENT_OUTPUT, shoot_multiplier * sdo.wheels[i].velocity * drive_velocity_kF, 0 );
+			static const double MAX_DRIVE_VEL_L1_FALCON = 6380.0 / 8.14 * (0.1016 * M_PI) / 60.0;
+			drive_motors[i]->set( Motor::Control_Mode::PERCENT_OUTPUT, (shoot_multiplier * sdo.wheels[i].velocity) / MAX_DRIVE_VEL_L1_FALCON, 0 );
 			s << "Speed %: " << shoot_multiplier * sdo.wheels[i].velocity * drive_velocity_kF << std::endl;
 			float delta = smallest_traversal(ck::math::normalize_to_2_pi(motor_map[steering_motor_ids[i]].sensor_position * 2.0 * M_PI), ck::math::normalize_to_2_pi(sdo.wheels[i].angle));
 			float target = (motor_map[steering_motor_ids[i]].sensor_position * 2.0 * M_PI) + delta;
