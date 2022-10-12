@@ -20,25 +20,8 @@ bool voltage_comp_enabled;
 
 bool brake_mode_default;
 
-double gear_ratio_motor_to_output_shaft;
 double wheel_diameter_inches;
-double robot_track_width_inches;
-double robot_track_length_inches;
-double robot_linear_inertia;
-double robot_angular_inertia;
-double robot_angular_drag;
-double robot_scrub_factor;
 
-double drive_Ks_v_intercept;
-double drive_Kv;
-double drive_Ka;
-
-double drive_velocity_kP;
-double drive_velocity_kI;
-double drive_velocity_kD;
-double drive_velocity_kF;
-double drive_velocity_iZone;
-double drive_velocity_maxIAccum;
 double drive_closed_loop_ramp;
 double drive_motion_cruise_velocity;
 double drive_motion_accel;
@@ -59,10 +42,3 @@ double open_loop_ramp;
 double supply_current_limit;
 double supply_current_limit_threshold;
 double supply_current_limit_threshold_exceeded_time;
-
-double joystick_input_ramp_accel;
-double joystick_input_ramp_decel;
-double joystick_input_ramp_zero_val;
-double joystick_input_ramp_max_val;
-
-int drive_control_mode;

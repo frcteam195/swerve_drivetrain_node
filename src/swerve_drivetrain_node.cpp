@@ -33,28 +33,13 @@
 #include <quesadilla_auto_node/Planner_Output.h>
 #include <ck_utilities/geometry/geometry.hpp>
 
-//#define CHARACTERIZE_DRIVE
-#ifdef CHARACTERIZE_DRIVE
-#include "drive_physics_characterizer_node/Drive_Characterization_Output.h"
-#endif
-
-#define INCHES_TO_METERS 0.0254
-
-//#define DYNAMIC_RECONFIGURE_TUNING
-#ifdef DYNAMIC_RECONFIGURE_TUNING
-#include <dynamic_reconfigure/server.h>
-#include <drivetrain_node/DriveTuningConfig.h>
-#endif
-
 ros::NodeHandle* node;
-static constexpr double ENCODER_TICKS_TO_M_S = 1.0;
 
 int mRobotStatus;
 float mJoystick1x;
 float mJoystick1y;
 std::mutex mThreadCtrlLock;
 uint32_t mConfigUpdateCounter;
-static bool about_to_shoot = false;
 
 std::vector<Motor*> drive_motors;
 std::vector<Motor*> steering_motors;
@@ -63,53 +48,7 @@ ck::swerve::SwerveDriveConfig swerve_drive_config;
 swerve_drivetrain_node::Swerve_Drivetrain_Diagnostics swerve_drivetrain_diagnostics;
 quesadilla_auto_node::Planner_Output drive_planner_output_msg;
 
-static constexpr double kDriveGearReduction = (50.0 / 11.0) * (44.0 / 30.0);
-static constexpr double kDriveRotationsPerTick = 1.0 / 2048.0 * 1.0 / kDriveGearReduction;
-
 tf2_ros::TransformBroadcaster * tfBroadcaster;
-
-enum class DriveControlMode : int
-{
-	SWERVE_VELOCITY_FEEDFORWARD = 0
-};
-
-static DriveControlMode drive_control_config {DriveControlMode::SWERVE_VELOCITY_FEEDFORWARD};
-
-#ifdef DYNAMIC_RECONFIGURE_TUNING
-enum class DriveTuningMode : int
-{
-	Normal = 0,
-	TuningVelocityPID = 1,
-	TuningkVkA = 2
-};
-
-static DriveTuningMode tuning_control_mode = DriveTuningMode::Normal;
-static double tuning_velocity_target = 0;
-void tuning_config_callback(drivetrain_node::DriveTuningConfig &config, uint32_t level)
-{
-	(void) level;
-	leftMasterMotor->config().set_kP(config.drive_kP);
-	leftMasterMotor->config().set_kI(config.drive_kI);
-	leftMasterMotor->config().set_kD(config.drive_kD);
-	leftMasterMotor->config().set_kF(config.drive_kF);
-	leftMasterMotor->config().set_i_zone(config.drive_iZone);
-	leftMasterMotor->config().set_max_i_accum(config.drive_maxIAccum);
-	leftMasterMotor->config().set_closed_loop_ramp(config.drive_closed_loop_ramp);
-
-	rightMasterMotor->config().set_kP(config.drive_kP);
-	rightMasterMotor->config().set_kI(config.drive_kI);
-	rightMasterMotor->config().set_kD(config.drive_kD);
-	rightMasterMotor->config().set_kF(config.drive_kF);
-	rightMasterMotor->config().set_i_zone(config.drive_iZone);
-	rightMasterMotor->config().set_max_i_accum(config.drive_maxIAccum);
-	rightMasterMotor->config().set_closed_loop_ramp(config.drive_closed_loop_ramp);
-
-	tuning_control_mode = (DriveTuningMode)config.drive_control_mode;
-	tuning_velocity_target = config.drive_tuning_velocity_target;
-	drive_Kv = config.drive_kV;
-	drive_Ka = config.drive_kA;
-}
-#endif
 
 bool forEachWheel(std::function<void(int)> func)
 {
@@ -132,19 +71,6 @@ void robotStatusCallback(const rio_control_node::Robot_Status& msg)
 	std::lock_guard<std::mutex> lock(mThreadCtrlLock);
 	mRobotStatus = msg.robot_state;
 }
-
-
-#ifdef CHARACTERIZE_DRIVE
-static bool characterizing_drive = false;
-static double characterizing_drive_left_output = true;
-static double characterizing_drive_right_output = true;
-void drive_characterization_callback(const drive_physics_characterizer_node::Drive_Characterization_Output& msg)
-{
-	characterizing_drive = msg.characterizing_drive;
-	characterizing_drive_left_output = msg.left_drive_output;
-	characterizing_drive_right_output = msg.right_drive_output;
-}
-#endif
 
 geometry_msgs::Twist get_twist_from_input(double percent_max_fwd_vel, double direction, double percent_max_ang_vel)
 {
@@ -182,41 +108,8 @@ ck::swerve::SwerveDriveOutput calculate_swerve_output_from_twist(geometry_msgs::
 		}
 		sdo.wheels.push_back(wheel);
 	}
-
-	// bool is_zero = true;
-	// for (int i = 0; i < robot_num_wheels; i++)
-	// {
-	// 	if (sdo.wheels[i].velocity != 0)
-	// 	{
-	// 		is_zero = false;
-	// 		break;
-	// 	}
-	// }
-
-	// if (is_zero)
-	// {
-	// 	for (int i = 0; i < robot_num_wheels; i++)
-	// 	{
-	// 		sdo.wheels[i].angle = prev_wheel_angle[i];
-	// 	}
-	// }
-	// else
-	// {
-	// 	for (int i = 0; i < robot_num_wheels; i++)
-	// 	{
-	// 		prev_wheel_angle[i] = sdo.wheels[i].angle;
-	// 	}
-	// }
-
 	return sdo;
 }
-
-
-
-// void turret_status_callback(const turret_node::Turret_Status& msg)
-// {
-// 	about_to_shoot = msg.about_to_shoot;
-// }
 
 void planner_callback(const quesadilla_auto_node::Planner_Output& msg)
 {
@@ -336,119 +229,23 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 	{
 	case rio_control_node::Robot_Status::AUTONOMOUS:
 	{
-		// double left_rps = drive_planner_output_msg.left_motor_output_rad_per_sec;
-		// double left_ff_voltage = drive_planner_output_msg.left_motor_feedforward_voltage;
-		// double left_accel_rps2 = drive_planner_output_msg.left_motor_accel_rad_per_sec2;
 
-		// swerve_drivetrain_diagnostics.targetVelocityLeft = left_rps;
-		// swerve_drivetrain_diagnostics.targetAccelLeft = left_accel_rps2;
-
-		// double right_rps = drive_planner_output_msg.right_motor_output_rad_per_sec;
-		// double right_ff_voltage = drive_planner_output_msg.right_motor_feedforward_voltage;
-		// double right_accel_rps2 = drive_planner_output_msg.right_motor_accel_rad_per_sec2;
-
-		// swerve_drivetrain_diagnostics.targetVelocityRight = right_rps;
-		// swerve_drivetrain_diagnostics.targetAccelRight = right_accel_rps2;
-
-		// double left_accel_out = ck::math::radians_per_second_to_ticks_per_100ms(left_accel_rps2, kDriveRotationsPerTick) / 1000.0;
-		// double right_accel_out = ck::math::radians_per_second_to_ticks_per_100ms(right_accel_rps2, kDriveRotationsPerTick) / 1000.0;
-
-		// // leftMasterMotor->set( Motor::Control_Mode::VELOCITY,
-		// // 						ck::math::rads_per_sec_to_rpm(left_rps),
-		// // 						left_ff_voltage / 12.0 + velocity_kD * left_accel_out / 1023.0
-		// // 						);
-
-		// // rightMasterMotor->set( Motor::Control_Mode::VELOCITY,
-		// // 						ck::math::rads_per_sec_to_rpm(right_rps),
-		// // 						right_ff_voltage / 12.0 + velocity_kD * right_accel_out / 1023.0
-		// // 						);
-
-		// leftMasterMotor->set( Motor::Control_Mode::VELOCITY,
-		// 						ck::math::rads_per_sec_to_rpm(left_rps),
-		// 						0
-		// 						);
-
-		// rightMasterMotor->set( Motor::Control_Mode::VELOCITY,
-		// 						ck::math::rads_per_sec_to_rpm(right_rps),
-		// 						0
-		// 						);
-		// swerve_drivetrain_diagnostics.leftAppliedArbFF = left_ff_voltage / 12.0 + velocity_kD * left_accel_out / 1023.0;
-		// swerve_drivetrain_diagnostics.rightAppliedArbFF = right_ff_voltage / 12.0 + velocity_kD * right_accel_out / 1023.0;
-		// swerve_drivetrain_diagnostics.rawLeftMotorOutput = ck::math::rads_per_sec_to_rpm(left_rps);
-		// swerve_drivetrain_diagnostics.rawRightMotorOutput = ck::math::rads_per_sec_to_rpm(right_rps);
 	}
     break;
 	case rio_control_node::Robot_Status::TELEOP:
 	{
 		ck::swerve::SwerveDriveOutput sdo;
-		float shoot_multiplier = 1.0;
-		if(about_to_shoot)
-		{
-			shoot_multiplier = 0.0;
-			brake_mode = true;
-		}
+		geometry_msgs::Twist twist = get_twist_from_input(msg.drivetrain_swerve_percent_fwd_vel, msg.drivetrain_swerve_direction, msg.drivetrain_swerve_percent_angular_rot);
+		sdo = calculate_swerve_output_from_twist(twist);
 
-		switch (drive_control_config)
-		{
-			case DriveControlMode::SWERVE_VELOCITY_FEEDFORWARD:
-			{
-				geometry_msgs::Twist twist = get_twist_from_input(msg.drivetrain_swerve_percent_fwd_vel, msg.drivetrain_swerve_direction, msg.drivetrain_swerve_percent_angular_rot);
-				sdo = calculate_swerve_output_from_twist(twist);
-				break;
-			}
-
-			// case DriveControlMode::VELOCITY_CURVATURE_DRIVE:
-			// {
-			// 	//Not Implemented
-			// 	leftPre = 0;
-			// 	rightPre = 0;
-			// 	break;
-			// }
-		}
-
-#ifdef CHARACTERIZE_DRIVE
-		if (characterizing_drive)
-		{
-			left = characterizing_drive_left_output;
-			right = characterizing_drive_right_output;
-		}
-#endif
-
-#ifdef DYNAMIC_RECONFIGURE_TUNING
-		switch (tuning_control_mode)
-		{
-			case DriveTuningMode::Normal:
-			{
-				leftMasterMotor->set( Motor::Control_Mode::PERCENT_OUTPUT, left, 0 );
-				rightMasterMotor->set( Motor::Control_Mode::PERCENT_OUTPUT, right, 0 );
-				break;
-			}
-			case DriveTuningMode::TuningVelocityPID:
-			{
-				swerve_drivetrain_diagnostics.tuningVelocityRPMTarget = tuning_velocity_target;
-				leftMasterMotor->set( Motor::Control_Mode::VELOCITY, tuning_velocity_target, 0 );
-				rightMasterMotor->set( Motor::Control_Mode::VELOCITY, tuning_velocity_target, 0 );
-				break;
-			}
-			case DriveTuningMode::TuningkVkA:
-			{
-				swerve_drivetrain_diagnostics.tuningVelocityRPMTarget = tuning_velocity_target;
-
-				//Start?? 0.001852534562
-				leftMasterMotor->set( Motor::Control_Mode::PERCENT_OUTPUT, (drive_Kv * tuning_velocity_target) / 12.0, 0 );
-				rightMasterMotor->set( Motor::Control_Mode::PERCENT_OUTPUT, (drive_Kv * tuning_velocity_target) /12.0, 0 );
-				break;
-			}
-		}
-#else
 		std::stringstream s;
 		s << "-----------------------------------------------" << std::endl;
 		s << std::endl << "Motor Outputs:" << std::endl;
 		for (int i = 0; i < robot_num_wheels; i++)
 		{
-			static const double MAX_DRIVE_VEL_L1_FALCON = 6380.0 / 8.14 * (0.1016 * M_PI) / 60.0;
-			drive_motors[i]->set( Motor::Control_Mode::PERCENT_OUTPUT, (shoot_multiplier * sdo.wheels[i].velocity) / MAX_DRIVE_VEL_L1_FALCON, 0 );
-			s << "Speed %: " << shoot_multiplier * sdo.wheels[i].velocity * drive_velocity_kF << std::endl;
+			constexpr double MAX_DRIVE_VEL_L1_FALCON = 6380.0 / 8.14 * (0.1016 * M_PI) / 60.0;
+			drive_motors[i]->set( Motor::Control_Mode::PERCENT_OUTPUT, sdo.wheels[i].velocity / MAX_DRIVE_VEL_L1_FALCON, 0 );
+			s << "Speed %: " << sdo.wheels[i].velocity << std::endl;
 			float delta = smallest_traversal(ck::math::normalize_to_2_pi(motor_map[steering_motor_ids[i]].sensor_position * 2.0 * M_PI), ck::math::normalize_to_2_pi(sdo.wheels[i].angle));
 			float target = (motor_map[steering_motor_ids[i]].sensor_position * 2.0 * M_PI) + delta;
 			steering_motors[i]->set( Motor::Control_Mode::MOTION_MAGIC, target / (2.0 * M_PI), 0 );
@@ -456,10 +253,6 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 			s << "--------" << std::endl;
 		}
 		ROS_DEBUG("%s", s.str().c_str());
-
-        // leftMasterMotor->set( Motor::Control_Mode::PERCENT_OUTPUT, left, 0 );
-		// rightMasterMotor->set( Motor::Control_Mode::PERCENT_OUTPUT, right, 0 );
-#endif
 	}
 	break;
 	default:
@@ -507,12 +300,6 @@ void initMotors()
 		drive_motor->config().set_voltage_compensation_enabled( voltage_comp_enabled );
 		drive_motor->config().set_open_loop_ramp(open_loop_ramp);
 		drive_motor->config().set_supply_current_limit(true, supply_current_limit, supply_current_limit_threshold, supply_current_limit_threshold_exceeded_time);
-		drive_motor->config().set_kP(drive_velocity_kP);
-		drive_motor->config().set_kI(drive_velocity_kI);
-		drive_motor->config().set_kD(drive_velocity_kD);
-		drive_motor->config().set_kF(drive_velocity_kF);
-		drive_motor->config().set_i_zone(drive_velocity_iZone);
-		drive_motor->config().set_max_i_accum(drive_velocity_maxIAccum);
 		drive_motor->config().set_closed_loop_ramp(drive_closed_loop_ramp);
 		drive_motor->config().apply();
 		drive_motors.push_back(drive_motor);
@@ -547,16 +334,6 @@ void initMotors()
 
 int main(int argc, char **argv)
 {
-	/**
-	 * The ros::init() function needs to see argc and argv so that it can perform
-	 * any ROS arguments and name remapping that were provided at the command line.
-	 * For programmatic remappings you can use a different version of init() which takes
-	 * remappings directly, but for most command-line programs, passing argc and argv is
-	 * the easiest way to do it.  The third argument to init() is the name of the node.
-	 *
-	 * You must call one of the versions of ros::init() before using any other
-	 * part of the ROS system.
-	 */
 	ros::init(argc, argv, "drivetrain");
 
 	ros::NodeHandle n;
@@ -590,21 +367,6 @@ int main(int argc, char **argv)
 	required_params_found &= n.getParam(CKSP(voltage_comp_enabled), voltage_comp_enabled);
 	required_params_found &= n.getParam(CKSP(brake_mode_default), brake_mode_default);
 	required_params_found &= n.getParam(CKSP(wheel_diameter_inches), wheel_diameter_inches);
-	required_params_found &= n.getParam(CKSP(robot_track_width_inches), robot_track_width_inches);
-	required_params_found &= n.getParam(CKSP(robot_track_length_inches), robot_track_length_inches);
-	required_params_found &= n.getParam(CKSP(robot_linear_inertia), robot_linear_inertia);
-	required_params_found &= n.getParam(CKSP(robot_angular_inertia), robot_angular_inertia);
-	required_params_found &= n.getParam(CKSP(robot_angular_drag), robot_angular_drag);
-	required_params_found &= n.getParam(CKSP(robot_scrub_factor), robot_scrub_factor);
-	required_params_found &= n.getParam(CKSP(drive_Ks_v_intercept), drive_Ks_v_intercept);
-	required_params_found &= n.getParam(CKSP(drive_Kv), drive_Kv);
-	required_params_found &= n.getParam(CKSP(drive_Ka), drive_Ka);
-	required_params_found &= n.getParam(CKSP(drive_velocity_kP), drive_velocity_kP);
-	required_params_found &= n.getParam(CKSP(drive_velocity_kI), drive_velocity_kI);
-	required_params_found &= n.getParam(CKSP(drive_velocity_kD), drive_velocity_kD);
-	required_params_found &= n.getParam(CKSP(drive_velocity_kF), drive_velocity_kF);
-	required_params_found &= n.getParam(CKSP(drive_velocity_iZone), drive_velocity_iZone);
-	required_params_found &= n.getParam(CKSP(drive_velocity_maxIAccum), drive_velocity_maxIAccum);
 	required_params_found &= n.getParam(CKSP(drive_closed_loop_ramp), drive_closed_loop_ramp);
 	required_params_found &= n.getParam(CKSP(drive_motion_cruise_velocity), drive_motion_cruise_velocity);
 	required_params_found &= n.getParam(CKSP(drive_motion_accel), drive_motion_accel);
@@ -623,11 +385,6 @@ int main(int argc, char **argv)
 	required_params_found &= n.getParam(CKSP(supply_current_limit), supply_current_limit);
 	required_params_found &= n.getParam(CKSP(supply_current_limit_threshold), supply_current_limit_threshold);
 	required_params_found &= n.getParam(CKSP(supply_current_limit_threshold_exceeded_time), supply_current_limit_threshold_exceeded_time);
-	required_params_found &= n.getParam(CKSP(joystick_input_ramp_accel), joystick_input_ramp_accel);
-	required_params_found &= n.getParam(CKSP(joystick_input_ramp_decel), joystick_input_ramp_decel);
-	required_params_found &= n.getParam(CKSP(joystick_input_ramp_zero_val), joystick_input_ramp_zero_val);
-	required_params_found &= n.getParam(CKSP(joystick_input_ramp_max_val), joystick_input_ramp_max_val);
-	required_params_found &= n.getParam(CKSP(drive_control_mode), drive_control_mode);
 
 	if (!required_params_found)
 	{
@@ -635,25 +392,10 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	drive_control_config = (DriveControlMode)drive_control_mode;
-
 	ros::Subscriber joystickStatus = node->subscribe("/HMISignals", 1, hmiSignalsCallback);
 	ros::Subscriber motorStatus = node->subscribe("MotorStatus", 1, motorStatusCallback);
 	ros::Subscriber robotStatus = node->subscribe("RobotStatus", 1, robotStatusCallback);
 	ros::Subscriber planner_sub = node->subscribe("/QuesadillaPlannerOutput", 1, planner_callback);
-	// ros::Subscriber turret_status_subscriber = node->subscribe("/TurretStatus", 1, turret_status_callback);
-#ifdef CHARACTERIZE_DRIVE
-	ros::Subscriber drive_characterization_subscriber = node->subscribe("/DriveCharacterizationOutput", 1, drive_characterization_callback);
-#endif
-
-    initMotors();
-
-#ifdef DYNAMIC_RECONFIGURE_TUNING
-	dynamic_reconfigure::Server<drivetrain_node::DriveTuningConfig> server;
-	dynamic_reconfigure::Server<drivetrain_node::DriveTuningConfig>::CallbackType f;
-	f = boost::bind(&tuning_config_callback, _1, _2);
-	server.setCallback(f);
-#endif
 
 	//Init swerve configuration
 	for (int i = 0; i < robot_num_wheels; i++)
