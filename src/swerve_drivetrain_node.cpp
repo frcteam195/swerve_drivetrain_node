@@ -94,8 +94,8 @@ geometry::Twist get_twist_from_input(double percent_max_fwd_vel, double directio
 
 	if(field_orient)
 	{
-		geometry::Rotation robot_inverse_rotation(get_robot_transform().angular.inverse());
-		return_twist.linear.Rotate(robot_inverse_rotation);
+		geometry::Rotation robot_inverse_rotation(-get_robot_transform().angular);
+		return_twist.linear = return_twist.linear.Rotate(robot_inverse_rotation);
 	}
 
 	return return_twist;
