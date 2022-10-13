@@ -146,7 +146,7 @@ void publish_motor_links(std::map<uint16_t, rio_control_node::Motor_Info> motor_
 		std::stringstream s;
 		s << "swerve_" << i;
 		transform.child_frame_id = s.str().c_str();
-		// transform.transform = swerve_drive_config.wheels[i].transform;
+		transform.transform = geometry::to_msg(wheel_transforms[i]);
 		transform.transform.rotation = tf2::toMsg(quat_tf);
 
 		tfBroadcaster->sendTransform(transform);
@@ -203,9 +203,9 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 
 		std::stringstream s;
 		s << "-----------------------------------------------" << std::endl;
-		s << std::endl << "Motor Outputs:" << std::endl;
+		s << std::endl << "Motor Outputs:" << robot_num_wheels<<  std::endl;
 
-		for (uint i = 0; i < drive_motors.size(); i++)
+		for (size_t i = 0; i < drive_motors.size(); i++)
 		{
 			constexpr double MAX_DRIVE_VEL_L1_FALCON = 6380.0 / 8.14 * (0.1016 * M_PI) / 60.0;
 			drive_motors[i]->set( Motor::Control_Mode::PERCENT_OUTPUT, sdo[i].second.linear.norm() / MAX_DRIVE_VEL_L1_FALCON, 0 );
@@ -359,6 +359,8 @@ int main(int argc, char **argv)
 	ros::Subscriber joystickStatus = node->subscribe("/HMISignals", 1, hmiSignalsCallback);
 	ros::Subscriber motorStatus = node->subscribe("MotorStatus", 1, motorStatusCallback);
 	ros::Subscriber robotStatus = node->subscribe("RobotStatus", 1, robotStatusCallback);
+
+	initMotors();
 
 	//Init swerve configuration
 	for (int i = 0; i < robot_num_wheels; i++)

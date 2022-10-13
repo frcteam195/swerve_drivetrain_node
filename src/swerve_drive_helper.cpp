@@ -77,7 +77,6 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
         geometry::Pose wheel_initial_pose = robot_initial_pose.transform(*i);
         geometry::Pose wheel_projected_pose = robot_projected_pose.transform(*i);
         std::stringstream s0;
-        // log << "I: " << (*i);
 
         geometry::Transform wheel_transformation = wheel_initial_pose.get_Transform(wheel_projected_pose);
 
@@ -149,7 +148,7 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
     log << "End calculate_swerve_outputs_internal" << std::endl;
     log << "---------------------------------";
 
-    ROS_INFO("%s", log.str().c_str());
+    ROS_DEBUG("%s", log.str().c_str());
 
     return results;
 }
