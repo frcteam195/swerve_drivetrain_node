@@ -18,6 +18,7 @@
 #include <rio_control_node/Motor_Configuration.h>
 #include <rio_control_node/Motor_Status.h>
 #include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/transform_listener.h>
 #include <ck_utilities/CKMath.hpp>
 #include <ck_utilities/Motor.hpp>
 #include <ck_utilities/ParameterHelper.hpp>
@@ -47,21 +48,32 @@ std::vector<geometry::Transform> wheel_transforms;
 swerve_drivetrain_node::Swerve_Drivetrain_Diagnostics swerve_drivetrain_diagnostics;
 
 tf2_ros::TransformBroadcaster * tfBroadcaster;
+tf2_ros::TransformListener *tfListener;
+tf2_ros::Buffer tfBuffer;
 
-bool forEachWheel(std::function<void(int)> func)
+geometry::Transform get_robot_transform()
 {
-	try
-	{
-		for(int i = 0; i < robot_num_wheels; i++)
-		{
-			func(i);
-		}
-	}
-	catch (...)
-	{
-		return false;
-	}
-	return true;
+    tf2::Stamped<tf2::Transform> robot_base_to_hub;
+	geometry::Transform transform;
+
+    try
+    {
+        tf2::convert(tfBuffer.lookupTransform("base_link", "hub_link", ros::Time(0)), robot_base_to_hub);
+		tf2::Transform tf_transform(robot_base_to_hub);
+		transform = geometry::to_transform(tf2::toMsg(tf_transform));
+    }
+
+    catch (...)
+    {
+        static ros::Time prevPubTime(0);
+        if (ros::Time::now() - prevPubTime > ros::Duration(1))
+        {
+            ROS_WARN("Robot Position Lookup Failed");
+            prevPubTime = ros::Time::now();
+        }
+    }
+
+    return transform;
 }
 
 void robotStatusCallback(const rio_control_node::Robot_Status& msg)
@@ -72,11 +84,19 @@ void robotStatusCallback(const rio_control_node::Robot_Status& msg)
 
 geometry::Twist get_twist_from_input(double percent_max_fwd_vel, double direction, double percent_max_ang_vel)
 {
+	bool field_orient = false;
+
 	geometry::Twist return_twist;
 
 	return_twist.linear.x(percent_max_fwd_vel * std::cos(direction) * robot_max_fwd_vel);
 	return_twist.linear.y(percent_max_fwd_vel * std::sin(direction) * robot_max_fwd_vel);
 	return_twist.angular.yaw(percent_max_ang_vel * robot_max_ang_vel);
+
+	if(field_orient)
+	{
+		geometry::Rotation robot_inverse_rotation(get_robot_transform().angular.inverse());
+		return_twist.linear.Rotate(robot_inverse_rotation);
+	}
 
 	return return_twist;
 }
@@ -372,6 +392,7 @@ int main(int argc, char **argv)
 	}
 
 	tfBroadcaster = new tf2_ros::TransformBroadcaster();
+    tfListener = new tf2_ros::TransformListener(tfBuffer);
 
 	ros::spin();
 	return 0;
