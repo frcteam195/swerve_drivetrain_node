@@ -1,5 +1,6 @@
 #include "swerve_drive_helper.hpp"
 #include <ck_utilities/geometry/geometry_ros_helpers.hpp>
+#include <ck_utilities/CKMath.hpp>
 #include <sstream>
 #include <ros/ros.h>
 #include <iostream>
@@ -203,37 +204,57 @@ std::ostream& operator<<(std::ostream& os, const std::vector<std::pair<geometry_
     return os;
 }
 
-std::vector<std::pair<geometry_msgs::Pose, geometry_msgs::Twist>> calculate_swerve_outputs
-    (geometry_msgs::Twist desired_twist,
-    ck::swerve::SwerveDriveConfig& wheel_transforms,
-    double projection_time_s)
-{
-    geometry::Twist desired_twist_ = geometry::to_twist(desired_twist);
 
-    std::vector<geometry::Transform> wheel_transforms_;
-    for(std::vector<ck::swerve::WheelConfig>::iterator i = wheel_transforms.wheels.begin();
-        i != wheel_transforms.wheels.end();
-        i++)
-    {
-        wheel_transforms_.push_back(geometry::to_transform((*i).transform));
-    }
 
-    std::vector<std::pair<geometry::Pose, geometry::Twist>> raw_results;
-    raw_results = calculate_swerve_outputs_internal(desired_twist_, wheel_transforms_, projection_time_s);
-    std::vector<std::pair<geometry_msgs::Pose, geometry_msgs::Twist>> results;
 
-    for (std::vector<std::pair<geometry::Pose, geometry::Twist>>::iterator i = raw_results.begin();
-         i != raw_results.end();
-         i++)
-    {
-        std::pair<geometry_msgs::Pose, geometry_msgs::Twist> entry =
-            std::make_pair<geometry_msgs::Pose, geometry_msgs::Twist>
-                (geometry::to_msg((*i).first), geometry::to_msg((*i).second));
-        results.push_back(entry);
-    }
-    // std::stringstream s;
-    // s << results;
-    // ROS_INFO("Results\n%s", s.str().c_str());
 
-    return results;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// std::vector<std::pair<geometry_msgs::Pose, geometry_msgs::Twist>> calculate_swerve_outputs
+//     (geometry_msgs::Twist desired_twist,
+//     ck::swerve::SwerveDriveConfig& wheel_transforms,
+//     double projection_time_s)
+// {
+//     geometry::Twist desired_twist_ = geometry::to_twist(desired_twist);
+
+//     std::vector<geometry::Transform> wheel_transforms_;
+//     for(std::vector<ck::swerve::WheelConfig>::iterator i = wheel_transforms.wheels.begin();
+//         i != wheel_transforms.wheels.end();
+//         i++)
+//     {
+//         wheel_transforms_.push_back(geometry::to_transform((*i).transform));
+//     }
+
+//     std::vector<std::pair<geometry::Pose, geometry::Twist>> raw_results;
+//     raw_results = calculate_swerve_outputs_internal(desired_twist_, wheel_transforms_, projection_time_s);
+//     std::vector<std::pair<geometry_msgs::Pose, geometry_msgs::Twist>> results;
+
+//     for (std::vector<std::pair<geometry::Pose, geometry::Twist>>::iterator i = raw_results.begin();
+//          i != raw_results.end();
+//          i++)
+//     {
+//         std::pair<geometry_msgs::Pose, geometry_msgs::Twist> entry =
+//             std::make_pair<geometry_msgs::Pose, geometry_msgs::Twist>
+//                 (geometry::to_msg((*i).first), geometry::to_msg((*i).second));
+//         results.push_back(entry);
+//     }
+//     // std::stringstream s;
+//     // s << results;
+//     // ROS_INFO("Results\n%s", s.str().c_str());
+
+//     return results;
+// }
