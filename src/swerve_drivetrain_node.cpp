@@ -30,7 +30,6 @@
 
 #include "swerve_drive_helper.hpp"
 #include "swerve_drivetrain_node/Swerve_Drivetrain_Diagnostics.h"
-#include <quesadilla_auto_node/Planner_Output.h>
 #include <ck_utilities/geometry/geometry.hpp>
 
 ros::NodeHandle* node;
@@ -46,7 +45,6 @@ std::vector<Motor*> steering_motors;
 // ck::swerve::SwerveDriveConfig swerve_drive_config;
 
 swerve_drivetrain_node::Swerve_Drivetrain_Diagnostics swerve_drivetrain_diagnostics;
-quesadilla_auto_node::Planner_Output drive_planner_output_msg;
 
 tf2_ros::TransformBroadcaster * tfBroadcaster;
 
@@ -110,12 +108,6 @@ geometry_msgs::Twist get_twist_from_input(double percent_max_fwd_vel, double dir
 // 	}
 // 	return sdo;
 // }
-
-void planner_callback(const quesadilla_auto_node::Planner_Output& msg)
-{
-	std::lock_guard<std::mutex> lock(mThreadCtrlLock);
-	drive_planner_output_msg = msg;
-}
 
 void publishOdometryData(std::map<uint16_t, rio_control_node::Motor_Info>& motor_map)
 {
@@ -395,7 +387,6 @@ int main(int argc, char **argv)
 	ros::Subscriber joystickStatus = node->subscribe("/HMISignals", 1, hmiSignalsCallback);
 	ros::Subscriber motorStatus = node->subscribe("MotorStatus", 1, motorStatusCallback);
 	ros::Subscriber robotStatus = node->subscribe("RobotStatus", 1, robotStatusCallback);
-	ros::Subscriber planner_sub = node->subscribe("/QuesadillaPlannerOutput", 1, planner_callback);
 
 	// //Init swerve configuration
 	// for (int i = 0; i < robot_num_wheels; i++)
