@@ -42,7 +42,7 @@ uint32_t mConfigUpdateCounter;
 
 std::vector<Motor*> drive_motors;
 std::vector<Motor*> steering_motors;
-// ck::swerve::SwerveDriveConfig swerve_drive_config;
+std::vector<geometry::Transform> wheel_transforms;
 
 swerve_drivetrain_node::Swerve_Drivetrain_Diagnostics swerve_drivetrain_diagnostics;
 
@@ -70,44 +70,16 @@ void robotStatusCallback(const rio_control_node::Robot_Status& msg)
 	mRobotStatus = msg.robot_state;
 }
 
-geometry_msgs::Twist get_twist_from_input(double percent_max_fwd_vel, double direction, double percent_max_ang_vel)
+geometry::Twist get_twist_from_input(double percent_max_fwd_vel, double direction, double percent_max_ang_vel)
 {
-	geometry_msgs::Twist return_twist;
+	geometry::Twist return_twist;
 
-	return_twist.linear.x = percent_max_fwd_vel * std::cos(direction) * robot_max_fwd_vel;
-	return_twist.linear.y = percent_max_fwd_vel * std::sin(direction) * robot_max_fwd_vel;
-	return_twist.angular.z = percent_max_ang_vel * robot_max_ang_vel;
+	return_twist.linear.x(percent_max_fwd_vel * std::cos(direction) * robot_max_fwd_vel);
+	return_twist.linear.y(percent_max_fwd_vel * std::sin(direction) * robot_max_fwd_vel);
+	return_twist.angular.yaw(percent_max_ang_vel * robot_max_ang_vel);
 
 	return return_twist;
 }
-
-// ck::swerve::SwerveDriveOutput calculate_swerve_output_from_twist(geometry_msgs::Twist twist)
-// {
-// 	// static double prev_wheel_angle[4] = {0, 0, 0, 0};
-// 	ck::swerve::SwerveDriveOutput sdo;
-// 	auto swrv = calculate_swerve_outputs(twist, swerve_drive_config, 0.01);
-// 	swerve_drivetrain_diagnostics.target_motor_rotation.clear();
-// 	for(int i = 0; i < robot_num_wheels; i++)
-// 	{
-// 		ck::swerve::Wheel wheel;
-// 		{
-// 			tf2::Quaternion q;
-// 			tf2::fromMsg(swrv[i].first.orientation, q);
-// 			double r = 0;
-// 			double p = 0;
-// 			double y = 0;
-// 			tf2::Matrix3x3(q).getRPY(r, p, y);
-// 			wheel.angle = ck::math::normalize_to_2_pi(y);
-// 			swerve_drivetrain_diagnostics.target_motor_rotation.push_back(wheel.angle);
-// 		}
-
-// 		{
-// 			wheel.velocity = swrv[i].second.linear.x;
-// 		}
-// 		sdo.wheels.push_back(wheel);
-// 	}
-// 	return sdo;
-// }
 
 void publishOdometryData(std::map<uint16_t, rio_control_node::Motor_Info>& motor_map)
 {
@@ -202,13 +174,13 @@ void motorStatusCallback(const rio_control_node::Motor_Status& msg)
 	prev_time = curr_time;
 	swerve_drivetrain_diagnostics.actual_motor_rotation.clear();
 	//Update swerve steering transforms
-	// for (int i = 0; i < robot_num_wheels; i++)
-	// {
-	// 	tf2::Quaternion quat_tf;
-	// 	quat_tf.setRPY(0, 0, ck::math::normalize_to_2_pi(ck::math::deg2rad(motor_map[steering_motor_ids[i]].sensor_position * 360.0)));
-	// 	swerve_drive_config.wheels[i].transform.rotation = tf2::toMsg(quat_tf);
-	// 	swerve_drivetrain_diagnostics.actual_motor_rotation.push_back(ck::math::normalize_to_2_pi(ck::math::deg2rad(motor_map[steering_motor_ids[i]].sensor_position * 360.0)));
-	// }
+	for (int i = 0; i < robot_num_wheels; i++)
+	{
+		geometry::Rotation rotation;
+		rotation.yaw(ck::math::normalize_to_2_pi(ck::math::deg2rad(motor_map[steering_motor_ids[i]].sensor_position * 360.0)));
+		wheel_transforms[i].angular = rotation;
+		swerve_drivetrain_diagnostics.actual_motor_rotation.push_back(rotation.yaw());
+	}
 
 	publish_motor_links(motor_map);
 }
@@ -226,25 +198,25 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
     break;
 	case rio_control_node::Robot_Status::TELEOP:
 	{
-		// ck::swerve::SwerveDriveOutput sdo;
-		// geometry_msgs::Twist twist = get_twist_from_input(msg.drivetrain_swerve_percent_fwd_vel, msg.drivetrain_swerve_direction, msg.drivetrain_swerve_percent_angular_rot);
-		// sdo = calculate_swerve_output_from_twist(twist);
+		geometry::Twist twist = get_twist_from_input(msg.drivetrain_swerve_percent_fwd_vel, msg.drivetrain_swerve_direction, msg.drivetrain_swerve_percent_angular_rot);
+		std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo = calculate_swerve_outputs(twist, wheel_transforms, 0.01);
 
-		// std::stringstream s;
-		// s << "-----------------------------------------------" << std::endl;
-		// s << std::endl << "Motor Outputs:" << std::endl;
-		// for (int i = 0; i < robot_num_wheels; i++)
-		// {
-		// 	constexpr double MAX_DRIVE_VEL_L1_FALCON = 6380.0 / 8.14 * (0.1016 * M_PI) / 60.0;
-		// 	drive_motors[i]->set( Motor::Control_Mode::PERCENT_OUTPUT, sdo.wheels[i].velocity / MAX_DRIVE_VEL_L1_FALCON, 0 );
-		// 	s << "Speed %: " << sdo.wheels[i].velocity << std::endl;
-		// 	float delta = smallest_traversal(ck::math::normalize_to_2_pi(motor_map[steering_motor_ids[i]].sensor_position * 2.0 * M_PI), ck::math::normalize_to_2_pi(sdo.wheels[i].angle));
-		// 	float target = (motor_map[steering_motor_ids[i]].sensor_position * 2.0 * M_PI) + delta;
-		// 	steering_motors[i]->set( Motor::Control_Mode::MOTION_MAGIC, target / (2.0 * M_PI), 0 );
-		// 	s << "Steer: " << sdo.wheels[i].angle << std::endl;
-		// 	s << "--------" << std::endl;
-		// }
-		// ROS_DEBUG("%s", s.str().c_str());
+		std::stringstream s;
+		s << "-----------------------------------------------" << std::endl;
+		s << std::endl << "Motor Outputs:" << std::endl;
+
+		for (uint i = 0; i < drive_motors.size(); i++)
+		{
+			constexpr double MAX_DRIVE_VEL_L1_FALCON = 6380.0 / 8.14 * (0.1016 * M_PI) / 60.0;
+			drive_motors[i]->set( Motor::Control_Mode::PERCENT_OUTPUT, sdo[i].second.linear.norm() / MAX_DRIVE_VEL_L1_FALCON, 0 );
+			s << "Speed %: " << sdo[i].second.linear.norm() << std::endl;
+			float delta = smallest_traversal(ck::math::normalize_to_2_pi(motor_map[steering_motor_ids[i]].sensor_position * 2.0 * M_PI), ck::math::normalize_to_2_pi(sdo[i].first.orientation.yaw()));
+			float target = (motor_map[steering_motor_ids[i]].sensor_position * 2.0 * M_PI) + delta;
+			steering_motors[i]->set( Motor::Control_Mode::MOTION_MAGIC, target / (2.0 * M_PI), 0 );
+			s << "Steer: " << sdo[i].first.orientation.yaw() << std::endl;
+			s << "--------" << std::endl;
+		}
+		ROS_DEBUG("%s", s.str().c_str());
 	}
 	break;
 	default:
@@ -388,16 +360,14 @@ int main(int argc, char **argv)
 	ros::Subscriber motorStatus = node->subscribe("MotorStatus", 1, motorStatusCallback);
 	ros::Subscriber robotStatus = node->subscribe("RobotStatus", 1, robotStatusCallback);
 
-	// //Init swerve configuration
-	// for (int i = 0; i < robot_num_wheels; i++)
-	// {
-	// 	ck::swerve::WheelConfig wheel;
-	// 	geometry_msgs::Transform wheel_transform;
-	// 	wheel_transform.translation.x = ck::math::inches_to_meters(robot_wheel_inches_from_center_x[i]);
-	// 	wheel_transform.translation.y = ck::math::inches_to_meters(robot_wheel_inches_from_center_y[i]);
-	// 	wheel.transform = wheel_transform;
-	// 	swerve_drive_config.wheels.push_back(wheel);
-	// }
+	//Init swerve configuration
+	for (int i = 0; i < robot_num_wheels; i++)
+	{
+		geometry::Transform wheel;
+		wheel.linear.x(ck::math::inches_to_meters(robot_wheel_inches_from_center_x[i]));
+		wheel.linear.y(ck::math::inches_to_meters(robot_wheel_inches_from_center_y[i]));
+		wheel_transforms.push_back(wheel);
+	}
 
 	tfBroadcaster = new tf2_ros::TransformBroadcaster();
 

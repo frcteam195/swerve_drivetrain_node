@@ -2,11 +2,11 @@
 
 #include <cmath>
 #include <vector>
-#include "geometry_msgs/Twist.h"
-#include "geometry_msgs/Pose.h"
-#include "geometry_msgs/Transform.h"
-#include "tf2/LinearMath/Quaternion.h"
-#include "tf2/LinearMath/Matrix3x3.h"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#include <ck_utilities/geometry/geometry.hpp>
 
 double smallest_traversal(double angle, double target_angle);
+
+std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
+    (geometry::Twist desired_twist,
+    std::vector<geometry::Transform> wheel_transforms,
+    float projection_time_s);
