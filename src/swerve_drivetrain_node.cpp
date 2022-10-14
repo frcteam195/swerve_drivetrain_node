@@ -58,7 +58,7 @@ geometry::Transform get_robot_transform()
 
     try
     {
-        tf2::convert(tfBuffer.lookupTransform("base_link", "hub_link", ros::Time(0)), robot_base_to_hub);
+        tf2::convert(tfBuffer.lookupTransform("map", "base_link", ros::Time(0)), robot_base_to_hub);
 		tf2::Transform tf_transform(robot_base_to_hub);
 		transform = geometry::to_transform(tf2::toMsg(tf_transform));
     }
@@ -84,7 +84,7 @@ void robotStatusCallback(const rio_control_node::Robot_Status& msg)
 
 geometry::Twist get_twist_from_input(double percent_max_fwd_vel, double direction, double percent_max_ang_vel)
 {
-	bool field_orient = false;
+	bool field_orient = true;
 
 	geometry::Twist return_twist;
 
@@ -103,14 +103,17 @@ geometry::Twist get_twist_from_input(double percent_max_fwd_vel, double directio
 
 void publishOdometryData(std::map<uint16_t, rio_control_node::Motor_Info>& motor_map)
 {
-	tf2::Vector3 wheel_vel_sum(0, 0, 0);
+	geometry::Translation wheel_vel_sum;
 	for (int i = 0; i < robot_num_wheels; i++)
 	{
-		double curr_vel_m_s = motor_map[drive_motor_ids[i]].sensor_velocity * M_PI * ck::math::inches_to_meters(wheel_diameter_inches);
+		double curr_vel_m_s = motor_map[drive_motor_ids[i]].sensor_velocity * M_PI * ck::math::inches_to_meters(wheel_diameter_inches) / 60.0;
 		double curr_angle = ck::math::normalize_to_2_pi(ck::math::deg2rad(motor_map[steering_motor_ids[i]].sensor_position * 360.0));
-		tf2::Vector3 wheel_vel(curr_vel_m_s * std::cos(curr_angle), curr_vel_m_s * std::sin(curr_angle), 0);
+		geometry::Translation wheel_vel;
+		wheel_vel.x(curr_vel_m_s * std::cos(curr_angle));
+		wheel_vel.y(curr_vel_m_s * std::sin(curr_angle));
 		wheel_vel_sum += wheel_vel;
 	}
+	wheel_vel_sum /= robot_num_wheels;
 
 	nav_msgs::Odometry odometry_data;
     odometry_data.header.stamp = ros::Time::now();
@@ -228,8 +231,8 @@ void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
 		for (size_t i = 0; i < drive_motors.size(); i++)
 		{
 			constexpr double MAX_DRIVE_VEL_L1_FALCON = 6380.0 / 8.14 * (0.1016 * M_PI) / 60.0;
-			drive_motors[i]->set( Motor::Control_Mode::PERCENT_OUTPUT, sdo[i].second.linear.norm() / MAX_DRIVE_VEL_L1_FALCON, 0 );
-			s << "Speed %: " << sdo[i].second.linear.norm() << std::endl;
+			drive_motors[i]->set( Motor::Control_Mode::PERCENT_OUTPUT, sdo[i].second.linear.x() / MAX_DRIVE_VEL_L1_FALCON, 0 );
+			s << "Speed %: " << sdo[i].second.linear.x() << std::endl;
 			float delta = smallest_traversal(ck::math::normalize_to_2_pi(motor_map[steering_motor_ids[i]].sensor_position * 2.0 * M_PI), ck::math::normalize_to_2_pi(sdo[i].first.orientation.yaw()));
 			float target = (motor_map[steering_motor_ids[i]].sensor_position * 2.0 * M_PI) + delta;
 			steering_motors[i]->set( Motor::Control_Mode::MOTION_MAGIC, target / (2.0 * M_PI), 0 );
