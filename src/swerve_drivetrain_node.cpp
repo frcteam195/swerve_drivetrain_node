@@ -32,10 +32,11 @@
 #include "swerve_drive_helper.hpp"
 #include "swerve_drivetrain_node/Swerve_Drivetrain_Diagnostics.h"
 #include <ck_utilities/geometry/geometry.hpp>
+#include <frc_robot_utilities/frc_robot_utilities.hpp>
+
 
 ros::NodeHandle* node;
 
-int mRobotStatus;
 float mJoystick1x;
 float mJoystick1y;
 std::mutex mThreadCtrlLock;
@@ -74,12 +75,6 @@ geometry::Transform get_robot_transform()
     }
 
     return transform;
-}
-
-void robotStatusCallback(const rio_control_node::Robot_Status& msg)
-{
-	std::lock_guard<std::mutex> lock(mThreadCtrlLock);
-	mRobotStatus = msg.robot_state;
 }
 
 geometry::Twist get_twist_from_input(double percent_max_fwd_vel, double direction, double percent_max_ang_vel)
@@ -178,14 +173,9 @@ void publish_motor_links(std::map<uint16_t, rio_control_node::Motor_Info> motor_
 
 static std::map<uint16_t, rio_control_node::Motor_Info> motor_map;
 
-void motorStatusCallback(const rio_control_node::Motor_Status& msg)
+void update_motors(std::map<uint16_t, rio_control_node::Motor_Info>& motor_map)
 {
 	static ros::Time prev_time(0);
-	for (const rio_control_node::Motor_Info& m : msg.motors)
-	{
-		motor_map[m.id] = m;
-	}
-
 	publishOdometryData(motor_map);
 
 	ros::Time curr_time = ros::Time::now();
@@ -208,72 +198,7 @@ void motorStatusCallback(const rio_control_node::Motor_Status& msg)
 	publish_motor_links(motor_map);
 }
 
-void hmiSignalsCallback(const hmi_agent_node::HMI_Signals& msg)
-{
-	std::lock_guard<std::mutex> lock(mThreadCtrlLock);
-	bool brake_mode = msg.drivetrain_brake;
-	switch (mRobotStatus)
-	{
-	case rio_control_node::Robot_Status::AUTONOMOUS:
-	{
-
-	}
-    break;
-	case rio_control_node::Robot_Status::TELEOP:
-	{
-		geometry::Twist twist = get_twist_from_input(msg.drivetrain_swerve_percent_fwd_vel, msg.drivetrain_swerve_direction, msg.drivetrain_swerve_percent_angular_rot);
-		std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo = calculate_swerve_outputs(twist, wheel_transforms, 0.01);
-
-		std::stringstream s;
-		s << "-----------------------------------------------" << std::endl;
-		s << std::endl << "Motor Outputs:" << robot_num_wheels<<  std::endl;
-
-		for (size_t i = 0; i < drive_motors.size(); i++)
-		{
-			constexpr double MAX_DRIVE_VEL_L1_FALCON = 6380.0 / 8.14 * (0.1016 * M_PI) / 60.0;
-			drive_motors[i]->set( Motor::Control_Mode::PERCENT_OUTPUT, sdo[i].second.linear.x() / MAX_DRIVE_VEL_L1_FALCON, 0 );
-			s << "Speed %: " << sdo[i].second.linear.x() << std::endl;
-			float delta = smallest_traversal(ck::math::normalize_to_2_pi(motor_map[steering_motor_ids[i]].sensor_position * 2.0 * M_PI), ck::math::normalize_to_2_pi(sdo[i].first.orientation.yaw()));
-			float target = (motor_map[steering_motor_ids[i]].sensor_position * 2.0 * M_PI) + delta;
-			steering_motors[i]->set( Motor::Control_Mode::MOTION_MAGIC, target / (2.0 * M_PI), 0 );
-			s << "Steer: " << sdo[i].first.orientation.yaw() << std::endl;
-			s << "--------" << std::endl;
-		}
-		ROS_DEBUG("%s", s.str().c_str());
-	}
-	break;
-	default:
-	{
-		for (Motor* mF : drive_motors)
-		{
-			mF->set( Motor::Control_Mode::PERCENT_OUTPUT, 0, 0 );
-		}
-	}
-	break;
-	}
-
-	if (brake_mode)
-	{
-		for (Motor* mF : drive_motors)
-		{
-			mF->config().set_neutral_mode(MotorConfig::NeutralMode::BRAKE);
-			mF->config().apply();
-		}
-	}
-	else
-	{
-		for (Motor* mF : drive_motors)
-		{
-			mF->config().set_neutral_mode(MotorConfig::NeutralMode::COAST);
-			mF->config().apply();
-		}
-	}
-	static ros::Publisher swerve_drivetrain_diagnostics_publisher = node->advertise<swerve_drivetrain_node::Swerve_Drivetrain_Diagnostics>("/DrivetrainDiagnostics", 1);
-	swerve_drivetrain_diagnostics_publisher.publish(swerve_drivetrain_diagnostics);
-}
-
-
-void initMotors()
+void init_swerve()
 {
 	//Drive Motors
     for (int i = 0; i < robot_num_wheels; i++)
@@ -317,16 +242,19 @@ void initMotors()
 		steering_motor->config().apply();
 		steering_motors.push_back(steering_motor);
     }
+
+	//Init swerve configuration
+	for (int i = 0; i < robot_num_wheels; i++)
+	{
+		geometry::Transform wheel;
+		wheel.linear.x(ck::math::inches_to_meters(robot_wheel_inches_from_center_x[i]));
+		wheel.linear.y(ck::math::inches_to_meters(robot_wheel_inches_from_center_y[i]));
+		wheel_transforms.push_back(wheel);
+	}
 }
 
-int main(int argc, char **argv)
+bool init_params(ros::NodeHandle &n)
 {
-	ros::init(argc, argv, "drivetrain");
-
-	ros::NodeHandle n;
-
-	node = &n;
-
 	bool required_params_found = true;
 
 	required_params_found &= n.getParam(CKSP(robot_num_wheels), robot_num_wheels);
@@ -376,27 +304,107 @@ int main(int argc, char **argv)
 	if (!required_params_found)
 	{
 		ROS_ERROR("Missing required parameters for node %s. Please check the list and make sure all required parameters are included", ros::this_node::getName().c_str());
+		return false;
+	}
+	
+	return true;
+}
+
+void set_brake_mode(bool brake)
+{
+	if (brake)
+	{
+		for (Motor* mF : drive_motors)
+		{
+			mF->config().set_neutral_mode(MotorConfig::NeutralMode::BRAKE);
+			mF->config().apply();
+		}
+	}
+	else
+	{
+		for (Motor* mF : drive_motors)
+		{
+			mF->config().set_neutral_mode(MotorConfig::NeutralMode::COAST);
+			mF->config().apply();
+		}
+	}
+}
+
+void set_swerve_output()
+{
+	geometry::Twist twist = get_twist_from_input(hmi_updates.get().drivetrain_swerve_percent_fwd_vel, hmi_updates.get().drivetrain_swerve_direction, hmi_updates.get().drivetrain_swerve_percent_angular_rot);
+	std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo = calculate_swerve_outputs(twist, wheel_transforms, 0.01);
+
+	// std::stringstream s;
+	// s << "-----------------------------------------------" << std::endl;
+	// s << std::endl << "Motor Outputs:" << robot_num_wheels<<  std::endl;
+
+	for (size_t i = 0; i < drive_motors.size(); i++)
+	{
+		constexpr double MAX_DRIVE_VEL_L1_FALCON = 6380.0 / 8.14 * (0.1016 * M_PI) / 60.0;
+		drive_motors[i]->set( Motor::Control_Mode::PERCENT_OUTPUT, sdo[i].second.linear.x() / MAX_DRIVE_VEL_L1_FALCON, 0 );
+		// s << "Speed %: " << sdo[i].second.linear.x() << std::endl;
+		float delta = smallest_traversal(ck::math::normalize_to_2_pi(motor_map[steering_motor_ids[i]].sensor_position * 2.0 * M_PI), ck::math::normalize_to_2_pi(sdo[i].first.orientation.yaw()));
+		float target = (motor_map[steering_motor_ids[i]].sensor_position * 2.0 * M_PI) + delta;
+		steering_motors[i]->set( Motor::Control_Mode::MOTION_MAGIC, target / (2.0 * M_PI), 0 );
+		// s << "Steer: " << sdo[i].first.orientation.yaw() << std::endl;
+		// s << "--------" << std::endl;
+	}
+	// ROS_DEBUG("%s", s.str().c_str());
+}
+
+
+int main(int argc, char **argv)
+{
+	ros::init(argc, argv, "drivetrain");
+
+	ros::NodeHandle n;
+
+	node = &n;
+	if (!init_params(n))
+	{
 		return 1;
 	}
 
-	ros::Subscriber joystickStatus = node->subscribe("/HMISignals", 1, hmiSignalsCallback);
-	ros::Subscriber motorStatus = node->subscribe("MotorStatus", 1, motorStatusCallback);
-	ros::Subscriber robotStatus = node->subscribe("RobotStatus", 1, robotStatusCallback);
-
-	initMotors();
-
-	//Init swerve configuration
-	for (int i = 0; i < robot_num_wheels; i++)
-	{
-		geometry::Transform wheel;
-		wheel.linear.x(ck::math::inches_to_meters(robot_wheel_inches_from_center_x[i]));
-		wheel.linear.y(ck::math::inches_to_meters(robot_wheel_inches_from_center_y[i]));
-		wheel_transforms.push_back(wheel);
-	}
+	init_swerve();
 
 	tfBroadcaster = new tf2_ros::TransformBroadcaster();
     tfListener = new tf2_ros::TransformListener(tfBuffer);
 
-	ros::spin();
+	register_for_robot_updates(node);
+
+	while (ros::ok())
+	{
+		ros::spinOnce();
+		update_motors(motor_updates.get());
+
+		bool brake_mode = hmi_updates.get().drivetrain_brake;
+		set_brake_mode(brake_mode);
+
+		switch (robot_status.get_mode())
+		{
+		case RobotMode::AUTONOMOUS:
+		{
+
+		}
+		break;
+		case RobotMode::TELEOP:
+		{
+			set_swerve_output();
+		}
+		break;
+		default:
+		{
+			for (Motor* mF : drive_motors)
+			{
+				mF->set( Motor::Control_Mode::PERCENT_OUTPUT, 0, 0 );
+			}
+		}
+		break;
+		}
+		
+		static ros::Publisher swerve_drivetrain_diagnostics_publisher = node->advertise<swerve_drivetrain_node::Swerve_Drivetrain_Diagnostics>("/DrivetrainDiagnostics", 1);
+		swerve_drivetrain_diagnostics_publisher.publish(swerve_drivetrain_diagnostics);
+	}
 	return 0;
 }
