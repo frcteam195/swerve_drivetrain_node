@@ -28,7 +28,7 @@
 #include <ck_utilities/geometry/geometry_ros_helpers.hpp>
 
 #include "swerve_drive_helper.hpp"
-#include "swerve_drivetrain_node/Swerve_Drivetrain_Diagnostics.h"
+#include "ck_ros_msgs_node/Swerve_Drivetrain_Diagnostics.h"
 #include <ck_utilities/geometry/geometry.hpp>
 #include <frc_robot_utilities/frc_robot_utilities.hpp>
 
@@ -44,7 +44,7 @@ std::vector<Motor*> drive_motors;
 std::vector<Motor*> steering_motors;
 std::vector<geometry::Transform> wheel_transforms;
 
-swerve_drivetrain_node::Swerve_Drivetrain_Diagnostics swerve_drivetrain_diagnostics;
+ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics swerve_drivetrain_diagnostics;
 
 tf2_ros::TransformBroadcaster * tfBroadcaster;
 tf2_ros::TransformListener *tfListener;
@@ -401,7 +401,7 @@ int main(int argc, char **argv)
 		break;
 		}
 		
-		static ros::Publisher swerve_drivetrain_diagnostics_publisher = node->advertise<swerve_drivetrain_node::Swerve_Drivetrain_Diagnostics>("/DrivetrainDiagnostics", 1);
+		static ros::Publisher swerve_drivetrain_diagnostics_publisher = node->advertise<ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics>("/DrivetrainDiagnostics", 1);
 		swerve_drivetrain_diagnostics_publisher.publish(swerve_drivetrain_diagnostics);
 	}
 	return 0;

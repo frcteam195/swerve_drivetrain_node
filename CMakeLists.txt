@@ -10,18 +10,18 @@ project(${PROJECT_NAME})
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp std_msgs message_generation rio_control_node ck_utilities_node hmi_agent_node frc_robot_utilities_node dynamic_reconfigure)
+find_package(catkin REQUIRED COMPONENTS roscpp std_msgs message_generation ck_ros_msgs_node rio_control_node ck_utilities_node hmi_agent_node frc_robot_utilities_node dynamic_reconfigure)
 
-add_message_files(
-  FILES
-  Swerve_Drivetrain_Diagnostics.msg
-)
+# add_message_files(
+#   FILES
+#   Swerve_Drivetrain_Diagnostics.msg
+# )
 
-## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  std_msgs  # Or other packages containing msgs
-)
+# ## Generate added messages and services with any dependencies listed here
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs  # Or other packages containing msgs
+# )
 
 generate_dynamic_reconfigure_options(
   cfg/DriveTuning.cfg
@@ -36,6 +36,7 @@ catkin_package(
   roscpp
   message_generation
   message_runtime
+  ck_ros_msgs_node
   rio_control_node
   nav_msgs
   ck_utilities_node
