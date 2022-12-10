@@ -27,8 +27,6 @@
 #include <ck_utilities/geometry/geometry.hpp>
 #include <ck_utilities/geometry/geometry_ros_helpers.hpp>
 
-#include <hmi_agent_node/HMI_Signals.h>
-
 #include "swerve_drive_helper.hpp"
 #include "swerve_drivetrain_node/Swerve_Drivetrain_Diagnostics.h"
 #include <ck_utilities/geometry/geometry.hpp>
