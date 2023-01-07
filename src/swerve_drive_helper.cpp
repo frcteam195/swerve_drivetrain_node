@@ -148,7 +148,7 @@ std::vector<std::pair<geometry::Pose, geometry::Twist>> calculate_swerve_outputs
     log << "End calculate_swerve_outputs_internal" << std::endl;
     log << "---------------------------------";
 
-    ROS_DEBUG("%s", log.str().c_str());
+    //ROS_DEBUG("%s", log.str().c_str());
 
     return results;
 }

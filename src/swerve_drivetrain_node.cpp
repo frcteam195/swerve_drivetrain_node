@@ -2,6 +2,8 @@
 
 #include "ros/ros.h"
 #include "std_msgs/String.h"
+#include "std_msgs/Float32.h"
+#include "std_msgs/Float32MultiArray.h"
 
 #include <thread>
 #include <string>
@@ -145,7 +147,7 @@ void publishOdometryData(std::map<uint16_t, rio_control_node::Motor_Info>& motor
 		 0.0, 0.0, 0.0, 0.0, 0.001, 0.0,
 		 0.0, 0.0, 0.0, 0.0, 0.0, 0.001,};
 
-	static ros::Publisher odometry_publisher = node->advertise<nav_msgs::Odometry>("/RobotOdometry", 1);
+	static ros::Publisher odometry_publisher = node->advertise<nav_msgs::Odometry>("/RobotOdometry", 100);
 	odometry_publisher.publish(odometry_data);
 }
 
@@ -168,8 +170,6 @@ void publish_motor_links(std::map<uint16_t, rio_control_node::Motor_Info> motor_
 		tfBroadcaster->sendTransform(transform);
 	}
 }
-
-static std::map<uint16_t, rio_control_node::Motor_Info> motor_map;
 
 void update_motors(std::map<uint16_t, rio_control_node::Motor_Info>& motor_map)
 {
@@ -304,7 +304,7 @@ bool init_params(ros::NodeHandle &n)
 		ROS_ERROR("Missing required parameters for node %s. Please check the list and make sure all required parameters are included", ros::this_node::getName().c_str());
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -334,20 +334,37 @@ void set_swerve_output()
 	std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo = calculate_swerve_outputs(twist, wheel_transforms, 0.01);
 
 	// std::stringstream s;
+	// s << "Twist: " << std::endl << twist << std::endl;
+	// ROS_DEBUG("%s", s.str().c_str());
+
+	// std::stringstream s;
 	// s << "-----------------------------------------------" << std::endl;
 	// s << std::endl << "Motor Outputs:" << robot_num_wheels<<  std::endl;
 
+	std_msgs::Float32MultiArray msg;
 	for (size_t i = 0; i < drive_motors.size(); i++)
 	{
 		constexpr double MAX_DRIVE_VEL_L1_FALCON = 6380.0 / 8.14 * (0.1016 * M_PI) / 60.0;
 		drive_motors[i]->set( Motor::Control_Mode::PERCENT_OUTPUT, sdo[i].second.linear.x() / MAX_DRIVE_VEL_L1_FALCON, 0 );
 		// s << "Speed %: " << sdo[i].second.linear.x() << std::endl;
-		float delta = smallest_traversal(ck::math::normalize_to_2_pi(motor_map[steering_motor_ids[i]].sensor_position * 2.0 * M_PI), ck::math::normalize_to_2_pi(sdo[i].first.orientation.yaw()));
-		float target = (motor_map[steering_motor_ids[i]].sensor_position * 2.0 * M_PI) + delta;
+		float delta = smallest_traversal(ck::math::normalize_to_2_pi(motor_updates.get()[steering_motor_ids[i]].sensor_position * 2.0 * M_PI), ck::math::normalize_to_2_pi(sdo[i].first.orientation.yaw()));
+		if(abs(delta > M_PI - 0.2))
+		{
+			std::stringstream s;
+			s << "This shouldn't happen" << std::endl
+			  << "Delta: " << delta << std::endl
+			  << "Left: " << ck::math::normalize_to_2_pi(motor_updates.get()[steering_motor_ids[i]].sensor_position * 2.0 * M_PI) << std::endl
+			  << "Right: " << ck::math::normalize_to_2_pi(sdo[i].first.orientation.yaw());
+			ROS_DEBUG("%s", s.str().c_str());
+		}
+		msg.data.push_back(delta);
+		float target = (motor_updates.get()[steering_motor_ids[i]].sensor_position * 2.0 * M_PI) + delta;
 		steering_motors[i]->set( Motor::Control_Mode::MOTION_MAGIC, target / (2.0 * M_PI), 0 );
 		// s << "Steer: " << sdo[i].first.orientation.yaw() << std::endl;
 		// s << "--------" << std::endl;
 	}
+	static ros::Publisher delta_publisher = node->advertise<std_msgs::Float32MultiArray>("/delta", 100);
+	delta_publisher.publish(msg);
 	// ROS_DEBUG("%s", s.str().c_str());
 }
 
@@ -400,7 +417,7 @@ int main(int argc, char **argv)
 		}
 		break;
 		}
-		
+
 		static ros::Publisher swerve_drivetrain_diagnostics_publisher = node->advertise<ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics>("/DrivetrainDiagnostics", 1);
 		swerve_drivetrain_diagnostics_publisher.publish(swerve_drivetrain_diagnostics);
 	}
