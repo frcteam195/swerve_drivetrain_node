@@ -52,8 +52,6 @@ std::map<uint16_t, rio_control_node::Motor_Info>& motor_map;
 rio_control_node::Robot_Status robot_status;
 ck_ros_msgs_node::HMI_Signals hmi_signals;
 
-
-
 void update_motors()
 {
 	static ros::Time prev_time(0);
@@ -73,8 +71,6 @@ void update_motors()
 		wheel_transforms[i].angular = rotation;
 		swerve_drivetrain_diagnostics.actual_motor_rotation.push_back(rotation.yaw());
 	}
-
-	publish_motor_links();
 }
 
 
@@ -95,6 +91,8 @@ void process_swerve_logic()
 		publish_motor_links();
 	}
 
+	update_motors();
+
 	geometry::Twist desired_robot_twist;
 
 	switch (robot_status.robot_state)
@@ -102,6 +100,7 @@ void process_swerve_logic()
 		case rio_control_node::Robot_Status::AUTONOMOUS:
 		{
 			set_brake_mode(true);
+			desired_robot_twist = get_twist_from_auto();
 		}
 		break;
 		case rio_control_node::Robot_Status::TELEOP:
@@ -145,8 +144,6 @@ void hmi_signals_callback(const ck_ros_msgs_node::HMI_Signals& hmi_signals_)
 	hmi_signals = hmi_signals_;
 }
 
-
-
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "drivetrain");
@@ -161,7 +158,6 @@ int main(int argc, char **argv)
 	}
 
 	init_swerve_motors();
-
 
 	static ros::Subscriber motor_status_subscriber = node->subscribe("/MotorStatus", 1, motor_status_callback, ros::TransportHints().tcpNoDelay());
 	static ros::Subscriber robot_status_subscriber = node->subscribe("/RobotStatus", 1, robot_status_callback, ros::TransportHints().tcpNoDelay());
