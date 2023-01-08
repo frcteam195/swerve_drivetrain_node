@@ -34,6 +34,7 @@
 #include "ck_ros_msgs_node/Swerve_Drivetrain_Diagnostics.h"
 #include "ck_ros_msgs_node/HMI_Signals.h"
 #include <ck_utilities/geometry/geometry.hpp>
+#include "config_params.hpp"
 
 
 ros::NodeHandle* node;
@@ -90,9 +91,9 @@ geometry::Twist get_twist_from_input()
 
 	geometry::Twist return_twist;
 
-	return_twist.linear.x(percent_max_fwd_vel * std::cos(direction) * robot_max_fwd_vel);
-	return_twist.linear.y(percent_max_fwd_vel * std::sin(direction) * robot_max_fwd_vel);
-	return_twist.angular.yaw(percent_max_ang_vel * robot_max_ang_vel);
+	return_twist.linear.x(percent_max_fwd_vel * std::cos(direction) * config_params::robot_max_fwd_vel);
+	return_twist.linear.y(percent_max_fwd_vel * std::sin(direction) * config_params::robot_max_fwd_vel);
+	return_twist.angular.yaw(percent_max_ang_vel * config_params::robot_max_ang_vel);
 
 	if(field_orient)
 	{
@@ -106,10 +107,10 @@ geometry::Twist get_twist_from_input()
 void publish_motor_links()
 {
 	//Update swerve steering transforms
-	for (int i = 0; i < robot_num_wheels; i++)
+	for (int i = 0; i < config_params::robot_num_wheels; i++)
 	{
 		tf2::Quaternion quat_tf;
-		quat_tf.setRPY(0, 0, ck::math::normalize_to_2_pi(ck::math::deg2rad(motor_map[(uint16_t)steering_motor_ids[i]].sensor_position * 360.0)));
+		quat_tf.setRPY(0, 0, ck::math::normalize_to_2_pi(ck::math::deg2rad(motor_map[(uint16_t)config_params::steering_motor_ids[i]].sensor_position * 360.0)));
 		geometry_msgs::TransformStamped transform;
 		transform.header.frame_id = "base_link";
 		transform.header.stamp = ros::Time::now() + ros::Duration(5);
@@ -135,10 +136,10 @@ void update_motors()
 	prev_time = curr_time;
 	swerve_drivetrain_diagnostics.actual_motor_rotation.clear();
 	//Update swerve steering transforms
-	for (int i = 0; i < robot_num_wheels; i++)
+	for (int i = 0; i < config_params::robot_num_wheels; i++)
 	{
 		geometry::Rotation rotation;
-		rotation.yaw(ck::math::normalize_to_2_pi(ck::math::deg2rad(motor_map[steering_motor_ids[i]].sensor_position * 360.0)));
+		rotation.yaw(ck::math::normalize_to_2_pi(ck::math::deg2rad(motor_map[config_params::steering_motor_ids[i]].sensor_position * 360.0)));
 		wheel_transforms[i].angular = rotation;
 		swerve_drivetrain_diagnostics.actual_motor_rotation.push_back(rotation.yaw());
 	}
@@ -222,7 +223,7 @@ int main(int argc, char **argv)
 	ros::NodeHandle n;
 
 	node = &n;
-	if (!init_params(n))
+	if (!config_params::init_params(n))
 	{
 		ROS_ERROR("NOT ALL SWERVE PARAMETERS SET - NODE TERMINATING");
 		return 1;

@@ -4,20 +4,21 @@
 #include <ck_utilities/geometry/geometry.hpp>
 #include <ck_utilities/CKMath.hpp>
 #include <nav_msgs/Odometry.h>
+#include "config_params.hpp"
 
 void publishOdometryData()
 {
 	geometry::Translation wheel_vel_sum;
-	for (int i = 0; i < robot_num_wheels; i++)
+	for (int i = 0; i < config_params::robot_num_wheels; i++)
 	{
-		double curr_vel_m_s = motor_map[drive_motor_ids[i]].sensor_velocity * M_PI * ck::math::inches_to_meters(wheel_diameter_inches) / 60.0;
-		double curr_angle = ck::math::normalize_to_2_pi(ck::math::deg2rad(motor_map[steering_motor_ids[i]].sensor_position * 360.0));
+		double curr_vel_m_s = motor_map[config_params::drive_motor_ids[i]].sensor_velocity * M_PI * ck::math::inches_to_meters(config_params::wheel_diameter_inches) / 60.0;
+		double curr_angle = ck::math::normalize_to_2_pi(ck::math::deg2rad(motor_map[config_params::steering_motor_ids[i]].sensor_position * 360.0));
 		geometry::Translation wheel_vel;
 		wheel_vel.x(curr_vel_m_s * std::cos(curr_angle));
 		wheel_vel.y(curr_vel_m_s * std::sin(curr_angle));
 		wheel_vel_sum += wheel_vel;
 	}
-	wheel_vel_sum /= robot_num_wheels;
+	wheel_vel_sum /= config_params::robot_num_wheels;
 
 	nav_msgs::Odometry odometry_data;
     odometry_data.header.stamp = ros::Time::now();
