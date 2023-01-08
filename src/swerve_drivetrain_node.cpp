@@ -1,37 +1,23 @@
-#include "swerve_drivetrain_node.hpp"
-
-#include "ros/ros.h"
-#include "std_msgs/String.h"
-#include "std_msgs/Float32.h"
-#include "std_msgs/Float32MultiArray.h"
-
-#include <thread>
+#include <ros/ros.h>
 #include <string>
 #include <map>
-#include <mutex>
 #include <iostream>
-#include <iomanip>
-#include <functional>
 
 #include <nav_msgs/Odometry.h>
 #include <rio_control_node/Joystick_Status.h>
 #include <rio_control_node/Robot_Status.h>
-#include <rio_control_node/Motor_Control.h>
-#include <rio_control_node/Motor_Configuration.h>
 #include <rio_control_node/Motor_Status.h>
-#include <ck_utilities/CKMath.hpp>
-#include <ck_utilities/Motor.hpp>
-#include <ck_utilities/ValueRamper.hpp>
-#include <ck_utilities/MovingAverage.hpp>
 #include <ck_utilities/geometry/geometry.hpp>
 #include <ck_utilities/geometry/geometry_ros_helpers.hpp>
+#include <ck_utilities/CKMath.hpp>
+#include <ck_ros_msgs_node/Swerve_Drivetrain_Diagnostics.h>
+#include <ck_ros_msgs_node/HMI_Signals.h>
+
+#include "swerve_drivetrain_node.hpp"
 
 #include "swerve_drive_helper.hpp"
 #include "motor_interface.hpp"
 #include "odometry_interface.hpp"
-#include "ck_ros_msgs_node/Swerve_Drivetrain_Diagnostics.h"
-#include "ck_ros_msgs_node/HMI_Signals.h"
-#include <ck_utilities/geometry/geometry.hpp>
 #include "config_params.hpp"
 #include "input_signal_processor.hpp"
 
