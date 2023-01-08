@@ -52,24 +52,14 @@ std::map<uint16_t, rio_control_node::Motor_Info>& motor_map;
 rio_control_node::Robot_Status robot_status;
 ck_ros_msgs_node::HMI_Signals hmi_signals;
 
-void update_motors()
+void update_motor_transforms()
 {
-	static ros::Time prev_time(0);
-	publishOdometryData();
-
-	ros::Time curr_time = ros::Time::now();
-	double dt = (curr_time - prev_time).toSec();
-
-	swerve_drivetrain_diagnostics.dt = dt;
-	prev_time = curr_time;
-	swerve_drivetrain_diagnostics.actual_motor_rotation.clear();
 	//Update swerve steering transforms
 	for (int i = 0; i < config_params::robot_num_wheels; i++)
 	{
 		geometry::Rotation rotation;
 		rotation.yaw(ck::math::normalize_to_2_pi(ck::math::deg2rad(motor_map[config_params::steering_motor_ids[i]].sensor_position * 360.0)));
 		wheel_transforms[i].angular = rotation;
-		swerve_drivetrain_diagnostics.actual_motor_rotation.push_back(rotation.yaw());
 	}
 }
 
@@ -86,12 +76,12 @@ void process_swerve_logic()
 	frame_counter ++;
 	frame_counter = frame_counter % 20;
 
+	update_motor_transforms();
+
 	if(frame_counter == 0)
 	{
 		publish_motor_links();
 	}
-
-	update_motors();
 
 	geometry::Twist desired_robot_twist;
 
@@ -120,6 +110,7 @@ void process_swerve_logic()
 	}
 
 	apply_robot_twist(desired_robot_twist);
+	publishOdometryData();
 }
 
 void motor_status_callback(const rio_control_node::Motor_Status& motor_status_)
