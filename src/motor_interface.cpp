@@ -1,4 +1,10 @@
 #include <ck_utilities/Motor.hpp>
+#include "motor_interface.hpp"
+#include <ck_utilities/ParameterHelper.hpp>
+#include <std_msgs/Float32MultiArray.h>
+#include <ck_utilities/CKMath.hpp>
+#include "swerve_drivetrain_node.hpp"
+#include "swerve_drive_helper.hpp"
 
 int robot_num_wheels;
 std::vector<int> drive_motor_ids;
