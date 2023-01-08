@@ -1,3 +1,5 @@
+#pragma once
+
 #include <ck_utilities/Motor.hpp>
 #include <ck_utilities/geometry/geometry.hpp>
 #include <ros/ros.h>

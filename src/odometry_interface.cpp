@@ -1,3 +1,4 @@
+#include <ros/ros.h>
 #include "odometry_interface.hpp"
 #include "motor_interface.hpp"
 #include "swerve_drivetrain_node.hpp"
@@ -5,9 +6,55 @@
 #include <ck_utilities/CKMath.hpp>
 #include <nav_msgs/Odometry.h>
 #include "config_params.hpp"
+#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/transform_listener.h>
+#include <ck_utilities/geometry/geometry.hpp>
+#include <ck_utilities/geometry/geometry_ros_helpers.hpp>
+
+tf2_ros::TransformBroadcaster * tfBroadcaster;
+tf2_ros::TransformListener *tfListener;
+tf2_ros::Buffer tfBuffer;
+
+void tf2_init()
+{
+	static bool init_complete = false;
+	if(!init_complete)
+	{
+		tfBroadcaster = new tf2_ros::TransformBroadcaster();
+		tfListener = new tf2_ros::TransformListener(tfBuffer);
+		init_complete = true;
+	}
+}
+
+geometry::Transform get_robot_transform()
+{
+	tf2_init();
+    tf2::Stamped<tf2::Transform> robot_base_to_hub;
+	geometry::Transform transform;
+
+    try
+    {
+        tf2::convert(tfBuffer.lookupTransform("map", "base_link", ros::Time(0)), robot_base_to_hub);
+		tf2::Transform tf_transform(robot_base_to_hub);
+		transform = geometry::to_transform(tf2::toMsg(tf_transform));
+    }
+
+    catch (...)
+    {
+        static ros::Time prevPubTime(0);
+        if (ros::Time::now() - prevPubTime > ros::Duration(1))
+        {
+            ROS_WARN("Robot Position Lookup Failed");
+            prevPubTime = ros::Time::now();
+        }
+    }
+
+    return transform;
+}
 
 void publishOdometryData()
 {
+	tf2_init();
 	geometry::Translation wheel_vel_sum;
 	for (int i = 0; i < config_params::robot_num_wheels; i++)
 	{
@@ -59,4 +106,26 @@ void publishOdometryData()
 
 	static ros::Publisher odometry_publisher = node->advertise<nav_msgs::Odometry>("/RobotOdometry", 100);
 	odometry_publisher.publish(odometry_data);
+}
+
+
+void publish_motor_links()
+{
+	tf2_init();
+	//Update swerve steering transforms
+	for (int i = 0; i < config_params::robot_num_wheels; i++)
+	{
+		tf2::Quaternion quat_tf;
+		quat_tf.setRPY(0, 0, ck::math::normalize_to_2_pi(ck::math::deg2rad(motor_map[(uint16_t)config_params::steering_motor_ids[i]].sensor_position * 360.0)));
+		geometry_msgs::TransformStamped transform;
+		transform.header.frame_id = "base_link";
+		transform.header.stamp = ros::Time::now() + ros::Duration(5);
+		std::stringstream s;
+		s << "swerve_" << i;
+		transform.child_frame_id = s.str().c_str();
+		transform.transform = geometry::to_msg(wheel_transforms[i]);
+		transform.transform.rotation = tf2::toMsg(quat_tf);
+
+		tfBroadcaster->sendTransform(transform);
+	}
 }

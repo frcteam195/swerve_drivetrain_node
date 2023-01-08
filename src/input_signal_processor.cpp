@@ -1,4 +1,7 @@
 #include "input_signal_processor.hpp"
+#include "swerve_drivetrain_node.hpp"
+#include "odometry_interface.hpp"
+#include "config_params.hpp"
 
 geometry::Twist get_twist_from_HMI()
 {

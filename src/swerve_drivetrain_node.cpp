@@ -19,8 +19,6 @@
 #include <rio_control_node/Motor_Control.h>
 #include <rio_control_node/Motor_Configuration.h>
 #include <rio_control_node/Motor_Status.h>
-#include <tf2_ros/transform_broadcaster.h>
-#include <tf2_ros/transform_listener.h>
 #include <ck_utilities/CKMath.hpp>
 #include <ck_utilities/Motor.hpp>
 #include <ck_utilities/ValueRamper.hpp>
@@ -35,6 +33,7 @@
 #include "ck_ros_msgs_node/HMI_Signals.h"
 #include <ck_utilities/geometry/geometry.hpp>
 #include "config_params.hpp"
+#include "input_signal_processor.hpp"
 
 
 ros::NodeHandle* node;
@@ -48,58 +47,12 @@ std::vector<geometry::Transform> wheel_transforms;
 
 ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics swerve_drivetrain_diagnostics;
 
-tf2_ros::TransformBroadcaster * tfBroadcaster;
-tf2_ros::TransformListener *tfListener;
-tf2_ros::Buffer tfBuffer;
 
 std::map<uint16_t, rio_control_node::Motor_Info>& motor_map;
 rio_control_node::Robot_Status robot_status;
 ck_ros_msgs_node::HMI_Signals hmi_signals;
 
-geometry::Transform get_robot_transform()
-{
-    tf2::Stamped<tf2::Transform> robot_base_to_hub;
-	geometry::Transform transform;
 
-    try
-    {
-        tf2::convert(tfBuffer.lookupTransform("map", "base_link", ros::Time(0)), robot_base_to_hub);
-		tf2::Transform tf_transform(robot_base_to_hub);
-		transform = geometry::to_transform(tf2::toMsg(tf_transform));
-    }
-
-    catch (...)
-    {
-        static ros::Time prevPubTime(0);
-        if (ros::Time::now() - prevPubTime > ros::Duration(1))
-        {
-            ROS_WARN("Robot Position Lookup Failed");
-            prevPubTime = ros::Time::now();
-        }
-    }
-
-    return transform;
-}
-
-void publish_motor_links()
-{
-	//Update swerve steering transforms
-	for (int i = 0; i < config_params::robot_num_wheels; i++)
-	{
-		tf2::Quaternion quat_tf;
-		quat_tf.setRPY(0, 0, ck::math::normalize_to_2_pi(ck::math::deg2rad(motor_map[(uint16_t)config_params::steering_motor_ids[i]].sensor_position * 360.0)));
-		geometry_msgs::TransformStamped transform;
-		transform.header.frame_id = "base_link";
-		transform.header.stamp = ros::Time::now() + ros::Duration(5);
-		std::stringstream s;
-		s << "swerve_" << i;
-		transform.child_frame_id = s.str().c_str();
-		transform.transform = geometry::to_msg(wheel_transforms[i]);
-		transform.transform.rotation = tf2::toMsg(quat_tf);
-
-		tfBroadcaster->sendTransform(transform);
-	}
-}
 
 void update_motors()
 {
@@ -154,7 +107,7 @@ void process_swerve_logic()
 		case rio_control_node::Robot_Status::TELEOP:
 		{
 			set_brake_mode(hmi_signals.drivetrain_brake);
-			desired_robot_twist = get_twist_from_input();
+			desired_robot_twist = get_twist_from_HMI();
 		}
 		break;
 		default:
@@ -209,8 +162,6 @@ int main(int argc, char **argv)
 
 	init_swerve_motors();
 
-	tfBroadcaster = new tf2_ros::TransformBroadcaster();
-    tfListener = new tf2_ros::TransformListener(tfBuffer);
 
 	static ros::Subscriber motor_status_subscriber = node->subscribe("/MotorStatus", 1, motor_status_callback, ros::TransportHints().tcpNoDelay());
 	static ros::Subscriber robot_status_subscriber = node->subscribe("/RobotStatus", 1, robot_status_callback, ros::TransportHints().tcpNoDelay());
