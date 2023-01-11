@@ -34,7 +34,7 @@ std::vector<geometry::Transform> wheel_transforms;
 ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics swerve_drivetrain_diagnostics;
 
 
-std::map<uint16_t, rio_control_node::Motor_Info>& motor_map;
+std::map<uint16_t, rio_control_node::Motor_Info> motor_map;
 rio_control_node::Robot_Status robot_status;
 ck_ros_msgs_node::HMI_Signals hmi_signals;
 
@@ -115,6 +115,7 @@ void motor_status_callback(const rio_control_node::Motor_Status& motor_status_)
 	{
 		receipt_map[i.id] = i;
 	}
+
 	motor_map = receipt_map;
 
 	process_swerve_logic();

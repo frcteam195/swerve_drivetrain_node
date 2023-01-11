@@ -6,7 +6,7 @@
 #include <ck_utilities/geometry/geometry.hpp>
 #include <ros/ros.h>
 
-extern std::map<uint16_t, rio_control_node::Motor_Info>& motor_map;
+extern std::map<uint16_t, rio_control_node::Motor_Info> motor_map;
 extern rio_control_node::Robot_Status robot_status;
 extern ck_ros_msgs_node::HMI_Signals hmi_signals;
 extern std::vector<geometry::Transform> wheel_transforms;
