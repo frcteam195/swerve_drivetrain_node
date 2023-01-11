@@ -3,6 +3,10 @@
 #include "odometry_interface.hpp"
 #include "config_params.hpp"
 #include "ck_utilities/MovingAverage.hpp"
+#include <ck_ros_msgs_node/Swerve_Drivetrain_Diagnostics.h>
+#include <ck_utilities/CKMath.hpp>
+
+extern ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics drivetrain_diagnostics;
 
 float determine_average_angular_velocity()
 {
@@ -25,6 +29,7 @@ float determine_average_angular_velocity()
 geometry::Twist get_twist_from_HMI()
 {
 	bool field_orient = true;
+	drivetrain_diagnostics.field_orient = field_orient;
 
 	double percent_max_fwd_vel = hmi_signals.drivetrain_swerve_percent_fwd_vel;
 	double direction = hmi_signals.drivetrain_swerve_direction;
@@ -33,6 +38,8 @@ geometry::Twist get_twist_from_HMI()
 	static bool resist_rotation = false;
 
 	float target_angular_velocity = (percent_max_ang_vel * config_params::robot_max_ang_vel);
+
+	drivetrain_diagnostics.target_angular_speed_deg_s = ck::math::rad2deg(target_angular_velocity);
 
 	if(resist_rotation)
 	{
@@ -52,11 +59,32 @@ geometry::Twist get_twist_from_HMI()
 	return_twist.linear.y(percent_max_fwd_vel * std::sin(direction) * config_params::robot_max_fwd_vel);
 	return_twist.angular.yaw(target_angular_velocity);
 
+	geometry::Twist body_twist = return_twist;
+
 	if(field_orient)
 	{
 		geometry::Rotation robot_inverse_rotation(-get_robot_transform().angular);
 		return_twist.linear = return_twist.linear.Rotate(robot_inverse_rotation);
 	}
+
+	if (!field_orient)
+	{
+		drivetrain_diagnostics.body_target_x_translation_m_s = return_twist.linear.x();
+		drivetrain_diagnostics.body_target_y_translation_m_s = return_twist.linear.y();
+		geometry::Rotation robot_field_orienting_rotation(get_robot_transform().angular);
+		geometry::Translation field_transform = return_twist.linear.Rotate(robot_field_orienting_rotation);
+		drivetrain_diagnostics.field_target_x_translation_m_s = field_transform.x();
+		drivetrain_diagnostics.field_target_y_translation_m_s = field_transform.y();
+	}
+	else
+	{
+		drivetrain_diagnostics.body_target_x_translation_m_s = body_twist.linear.x();
+		drivetrain_diagnostics.body_target_y_translation_m_s = body_twist.linear.y();
+		drivetrain_diagnostics.field_target_x_translation_m_s = return_twist.linear.x();
+		drivetrain_diagnostics.field_target_y_translation_m_s = return_twist.linear.y();
+	}
+
+	drivetrain_diagnostics.target_total_speed_m_s = return_twist.linear.norm();
 
 	return return_twist;
 }

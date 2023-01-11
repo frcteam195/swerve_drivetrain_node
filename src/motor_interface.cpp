@@ -2,12 +2,15 @@
 #include "motor_interface.hpp"
 #include <std_msgs/Float32MultiArray.h>
 #include <ck_utilities/CKMath.hpp>
+#include <ck_ros_msgs_node/Swerve_Drivetrain_Diagnostics.h>
 #include "swerve_drivetrain_node.hpp"
 #include "swerve_drive_helper.hpp"
 #include "config_params.hpp"
 
 std::vector<Motor*> drive_motors;
 std::vector<Motor*> steering_motors;
+
+extern ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics drivetrain_diagnostics;
 
 void set_swerve_output(std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo)
 {
@@ -20,6 +23,12 @@ void set_swerve_output(std::vector<std::pair<geometry::Pose, geometry::Twist>> s
 		msg.data.push_back(delta);
 		float target = (motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI) + delta;
 		steering_motors[i]->set( Motor::Control_Mode::MOTION_MAGIC, target / (2.0 * M_PI), 0 );
+
+		drivetrain_diagnostics.modules[i].target_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(sdo[i].first.orientation.yaw()));
+		drivetrain_diagnostics.modules[i].actual_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI));
+		drivetrain_diagnostics.modules[i].target_speed_m_s = sdo[i].second.linear.x();
+		drivetrain_diagnostics.modules[i].actual_speed_m_s = motor_map[config_params::drive_motor_ids[i]].sensor_velocity / 8.14 * (0.1016 * M_PI) / 60.0;
+
 	}
 }
 
@@ -60,6 +69,10 @@ void init_swerve_motors()
 		drive_motor->config().set_closed_loop_ramp(config_params::drive_closed_loop_ramp);
 		drive_motor->config().apply();
 		drive_motors.push_back(drive_motor);
+		ck_ros_msgs_node::Swerve_Drivetrain_Module_Diagnostics diagnostic_module;
+		diagnostic_module.drive_motor_id = config_params::drive_motor_ids[i];
+		diagnostic_module.steering_motor_id = config_params::steering_motor_ids[i];
+		drivetrain_diagnostics.modules.push_back(diagnostic_module);
 	}
 
 	//Steering Motors
@@ -95,5 +108,7 @@ void init_swerve_motors()
 		wheel.linear.x(ck::math::inches_to_meters(config_params::robot_wheel_inches_from_center_x[i]));
 		wheel.linear.y(ck::math::inches_to_meters(config_params::robot_wheel_inches_from_center_y[i]));
 		wheel_transforms.push_back(wheel);
+		drivetrain_diagnostics.modules[i].x_transform_m = wheel.linear.x();
+		drivetrain_diagnostics.modules[i].y_transform_m = wheel.linear.y();
 	}
 }

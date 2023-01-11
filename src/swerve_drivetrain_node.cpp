@@ -38,6 +38,9 @@ std::map<uint16_t, rio_control_node::Motor_Info>& motor_map;
 rio_control_node::Robot_Status robot_status;
 ck_ros_msgs_node::HMI_Signals hmi_signals;
 
+static ros::Publisher * diagnostics_publisher;
+ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics drivetrain_diagnostics;
+
 void update_motor_transforms()
 {
 	//Update swerve steering transforms
@@ -54,6 +57,11 @@ void apply_robot_twist(geometry::Twist desired_twist)
 {
 	std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo = calculate_swerve_outputs(desired_twist, wheel_transforms, 0.01);
 	set_swerve_output(sdo);
+}
+
+void publish_diagnostic_data()
+{
+	diagnostics_publisher->publish(drivetrain_diagnostics);
 }
 
 void process_swerve_logic()
@@ -97,6 +105,7 @@ void process_swerve_logic()
 
 	apply_robot_twist(desired_robot_twist);
 	publishOdometryData();
+	publish_diagnostic_data();
 }
 
 void motor_status_callback(const rio_control_node::Motor_Status& motor_status_)
@@ -139,7 +148,8 @@ int main(int argc, char **argv)
 	static ros::Subscriber motor_status_subscriber = node->subscribe("/MotorStatus", 1, motor_status_callback, ros::TransportHints().tcpNoDelay());
 	static ros::Subscriber robot_status_subscriber = node->subscribe("/RobotStatus", 1, robot_status_callback, ros::TransportHints().tcpNoDelay());
 	static ros::Subscriber hmi_signals_subscriber = node->subscribe("/HMISignals", 1, hmi_signals_callback, ros::TransportHints().tcpNoDelay());
-
+	ros::Publisher diagnostics_publisher_ = node->advertise<ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics>("/SwerveDiagnostics", 10);
+	diagnostics_publisher = &diagnostics_publisher_;
 	ros::spin();
 	return 0;
 }

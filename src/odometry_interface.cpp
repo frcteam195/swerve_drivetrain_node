@@ -10,10 +10,24 @@
 #include <tf2_ros/transform_listener.h>
 #include <ck_utilities/geometry/geometry.hpp>
 #include <ck_utilities/geometry/geometry_ros_helpers.hpp>
+#include <nav_msgs/Odometry.h>
+#include <ck_ros_msgs_node/Swerve_Drivetrain_Diagnostics.h>
+
 
 tf2_ros::TransformBroadcaster * tfBroadcaster;
 tf2_ros::TransformListener *tfListener;
 tf2_ros::Buffer tfBuffer;
+extern ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics drivetrain_diagnostics;
+
+void robot_odometry_subscriber(const nav_msgs::Odometry &odom)
+{
+
+	geometry::Twist drivetrain_twist = geometry::to_twist(odom.twist.twist);
+	drivetrain_diagnostics.field_actual_x_translation_m_s = drivetrain_twist.linear.x();
+	drivetrain_diagnostics.field_actual_y_translation_m_s = drivetrain_twist.linear.y();
+	drivetrain_diagnostics.actual_angular_speed_deg_s = ck::math::rad2deg(drivetrain_twist.angular.yaw());
+	drivetrain_diagnostics.actual_total_speed_m_s = drivetrain_twist.linear.norm();
+}
 
 void tf2_init()
 {
@@ -23,8 +37,16 @@ void tf2_init()
 		tfBroadcaster = new tf2_ros::TransformBroadcaster();
 		tfListener = new tf2_ros::TransformListener(tfBuffer);
 		init_complete = true;
+		static ros::Subscriber odometry_subscriber = node->subscribe("/odometry/filtered", 10, robot_odometry_subscriber, ros::TransportHints().tcpNoDelay());
 	}
 }
+
+// void update_drivetrain_diagnostics_position()
+// {
+// 	// geometry::Transform robot_transform = get_robot_transform();
+
+
+// }
 
 geometry::Transform get_robot_transform()
 {
@@ -106,6 +128,9 @@ void publishOdometryData()
 
 	static ros::Publisher odometry_publisher = node->advertise<nav_msgs::Odometry>("/RobotOdometry", 100);
 	odometry_publisher.publish(odometry_data);
+
+	drivetrain_diagnostics.body_actual_x_translation_m_s = wheel_vel_sum.x();
+	drivetrain_diagnostics.body_actual_y_translation_m_s = wheel_vel_sum.y();
 }
 
 
