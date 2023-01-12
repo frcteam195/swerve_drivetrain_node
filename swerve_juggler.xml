@@ -1,73 +1,43 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <root>
  <tabbed_widget parent="main_window" name="Main Window">
-  <Tab containers="1" tab_name="tab1">
+  <Tab containers="1" tab_name="Module Speeds">
    <Container>
-    <DockSplitter orientation="-" sizes="0.501736;0.498264" count="2">
+    <DockSplitter orientation="-" sizes="1" count="1">
      <DockSplitter orientation="|" sizes="0.5;0.5" count="2">
-      <DockSplitter orientation="-" sizes="0.5;0.5" count="2">
+      <DockSplitter orientation="-" sizes="0.500707;0.499293" count="2">
        <DockArea name="...">
         <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
-         <range top="-0.197508" left="13.532582" bottom="-0.244594" right="66.229334"/>
+         <range bottom="-3.675000" top="3.675000" right="49.980666" left="0.000000"/>
          <limitY/>
-         <curve color="#ff7f0e" name="/MotorStatus/motors.4/sensor_position"/>
-         <curve color="#f14cc1" name="/MotorControl/motors.4/output_value"/>
+         <curve color="#1f77b4" name="/SwerveDiagnostics/modules.0/actual_speed_m_s"/>
+         <curve color="#d62728" name="/SwerveDiagnostics/modules.0/target_speed_m_s"/>
         </plot>
        </DockArea>
        <DockArea name="...">
         <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
-         <range top="1.000000" left="0.000000" bottom="0.000000" right="1.000000"/>
+         <range bottom="-3.675000" top="3.675000" right="49.980666" left="0.000000"/>
          <limitY/>
-        </plot>
-       </DockArea>
-      </DockSplitter>
-      <DockSplitter orientation="-" sizes="0.5;0.5" count="2">
-       <DockArea name="...">
-        <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
-         <range top="-0.243431" left="13.532582" bottom="-0.245225" right="66.229334"/>
-         <limitY/>
-         <curve color="#1f77b4" name="/MotorStatus/motors.5/sensor_position"/>
-         <curve color="#9467bd" name="/MotorControl/motors.5/output_value"/>
-        </plot>
-       </DockArea>
-       <DockArea name="...">
-        <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
-         <range top="1.000000" left="0.000000" bottom="0.000000" right="1.000000"/>
-         <limitY/>
+         <curve color="#f14cc1" name="/SwerveDiagnostics/modules.2/target_speed_m_s"/>
+         <curve color="#9467bd" name="/SwerveDiagnostics/modules.2/actual_speed_m_s"/>
         </plot>
        </DockArea>
       </DockSplitter>
-     </DockSplitter>
-     <DockSplitter orientation="|" sizes="0.5;0.5" count="2">
-      <DockSplitter orientation="-" sizes="0.5;0.5" count="2">
+      <DockSplitter orientation="-" sizes="0.500707;0.499293" count="2">
        <DockArea name="...">
         <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
-         <range top="0.269423" left="13.532582" bottom="-0.257734" right="66.229334"/>
+         <range bottom="-3.675000" top="3.675000" right="49.980666" left="0.000000"/>
          <limitY/>
-         <curve color="#d62728" name="/MotorStatus/motors.6/sensor_position"/>
-         <curve color="#17becf" name="/MotorControl/motors.6/output_value"/>
+         <curve color="#1ac938" name="/SwerveDiagnostics/modules.1/target_speed_m_s"/>
+         <curve color="#ff7f0e" name="/SwerveDiagnostics/modules.1/actual_speed_m_s"/>
         </plot>
        </DockArea>
        <DockArea name="...">
         <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
-         <range top="1.000000" left="0.000000" bottom="0.000000" right="1.000000"/>
+         <range bottom="-3.675000" top="3.675000" right="49.980666" left="0.000000"/>
          <limitY/>
-        </plot>
-       </DockArea>
-      </DockSplitter>
-      <DockSplitter orientation="-" sizes="0.5;0.5" count="2">
-       <DockArea name="...">
-        <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
-         <range top="0.256872" left="13.532582" bottom="0.256872" right="66.229334"/>
-         <limitY/>
-         <curve color="#1ac938" name="/MotorStatus/motors.7/sensor_position"/>
-         <curve color="#bcbd22" name="/MotorControl/motors.7/output_value"/>
-        </plot>
-       </DockArea>
-       <DockArea name="...">
-        <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
-         <range top="1.000000" left="0.000000" bottom="0.000000" right="1.000000"/>
-         <limitY/>
+         <curve color="#17becf" name="/SwerveDiagnostics/modules.3/target_speed_m_s"/>
+         <curve color="#bcbd22" name="/SwerveDiagnostics/modules.3/actual_speed_m_s"/>
         </plot>
        </DockArea>
       </DockSplitter>
@@ -75,7 +45,51 @@
     </DockSplitter>
    </Container>
   </Tab>
-  <currentTabIndex index="0"/>
+  <Tab containers="1" tab_name="Module Angles">
+   <Container>
+    <DockSplitter orientation="-" sizes="1" count="1">
+     <DockSplitter orientation="|" sizes="0.5;0.5" count="2">
+      <DockSplitter orientation="-" sizes="0.500707;0.499293" count="2">
+       <DockArea name="...">
+        <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
+         <range bottom="-8.907715" top="368.907715" right="49.980666" left="0.000000"/>
+         <limitY/>
+         <curve color="#1f77b4" name="/SwerveDiagnostics/modules.0/actual_steering_angle_deg"/>
+         <curve color="#d62728" name="/SwerveDiagnostics/modules.0/target_steering_angle_deg"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
+         <range bottom="-8.907715" top="368.907715" right="49.980666" left="0.000000"/>
+         <limitY/>
+         <curve color="#17becf" name="/SwerveDiagnostics/modules.2/actual_steering_angle_deg"/>
+         <curve color="#bcbd22" name="/SwerveDiagnostics/modules.2/target_steering_angle_deg"/>
+        </plot>
+       </DockArea>
+      </DockSplitter>
+      <DockSplitter orientation="-" sizes="0.500707;0.499293" count="2">
+       <DockArea name="...">
+        <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
+         <range bottom="-8.725342" top="368.813232" right="49.980666" left="0.000000"/>
+         <limitY/>
+         <curve color="#1ac938" name="/SwerveDiagnostics/modules.1/actual_steering_angle_deg"/>
+         <curve color="#ff7f0e" name="/SwerveDiagnostics/modules.1/target_steering_angle_deg"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
+         <range bottom="-8.997803" top="368.909912" right="49.980666" left="0.000000"/>
+         <limitY/>
+         <curve color="#f14cc1" name="/SwerveDiagnostics/modules.3/actual_steering_angle_deg"/>
+         <curve color="#9467bd" name="/SwerveDiagnostics/modules.3/target_steering_angle_deg"/>
+        </plot>
+       </DockArea>
+      </DockSplitter>
+     </DockSplitter>
+    </DockSplitter>
+   </Container>
+  </Tab>
+  <currentTabIndex index="1"/>
  </tabbed_widget>
  <use_relative_time_offset enabled="1"/>
  <!-- - - - - - - - - - - - - - - -->
@@ -115,7 +129,6 @@
  </Plugins>
  <!-- - - - - - - - - - - - - - - -->
  <previouslyLoaded_Datafiles/>
- <previouslyLoaded_Streamer name="ROS Topic Subscriber"/>
  <!-- - - - - - - - - - - - - - - -->
  <customMathEquations/>
  <snippets/>

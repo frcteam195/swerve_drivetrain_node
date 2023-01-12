@@ -29,6 +29,12 @@ namespace config_params
     extern double drive_motion_cruise_velocity;
     extern double drive_motion_accel;
     extern double drive_motion_s_curve_strength;
+    extern double drive_velocity_kP;
+    extern double drive_velocity_kI;
+    extern double drive_velocity_kD;
+    extern double drive_velocity_kF;
+    extern double drive_velocity_iZone;
+    extern double drive_velocity_maxIAccum;
 
     extern double steering_velocity_kP;
     extern double steering_velocity_kI;
@@ -42,9 +48,12 @@ namespace config_params
     extern double steering_motion_s_curve_strength;
 
     extern double open_loop_ramp;
-    extern double supply_current_limit;
-    extern double supply_current_limit_threshold;
-    extern double supply_current_limit_threshold_exceeded_time;
+    extern double drive_supply_current_limit;
+    extern double drive_supply_current_limit_threshold;
+    extern double drive_supply_current_limit_threshold_exceeded_time;
+    extern double steering_supply_current_limit;
+    extern double steering_supply_current_limit_threshold;
+    extern double steering_supply_current_limit_threshold_exceeded_time;
 
     bool init_params(ros::NodeHandle &n);
 }

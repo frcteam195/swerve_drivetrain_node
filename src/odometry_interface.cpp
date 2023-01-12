@@ -18,6 +18,7 @@ tf2_ros::TransformBroadcaster * tfBroadcaster;
 tf2_ros::TransformListener *tfListener;
 tf2_ros::Buffer tfBuffer;
 extern ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics drivetrain_diagnostics;
+static geometry::Transform robot_transform;
 
 void robot_odometry_subscriber(const nav_msgs::Odometry &odom)
 {
@@ -27,6 +28,9 @@ void robot_odometry_subscriber(const nav_msgs::Odometry &odom)
 	drivetrain_diagnostics.field_actual_y_translation_m_s = drivetrain_twist.linear.y();
 	drivetrain_diagnostics.actual_angular_speed_deg_s = ck::math::rad2deg(drivetrain_twist.angular.yaw());
 	drivetrain_diagnostics.actual_total_speed_m_s = drivetrain_twist.linear.norm();
+
+	robot_transform.angular = geometry::to_rotation(odom.pose.pose.orientation);
+	robot_transform.linear = geometry::to_translation(odom.pose.pose.position);
 }
 
 void tf2_init()
@@ -50,28 +54,7 @@ void tf2_init()
 
 geometry::Transform get_robot_transform()
 {
-	tf2_init();
-    tf2::Stamped<tf2::Transform> robot_base_to_hub;
-	geometry::Transform transform;
-
-    try
-    {
-        tf2::convert(tfBuffer.lookupTransform("map", "base_link", ros::Time(0)), robot_base_to_hub);
-		tf2::Transform tf_transform(robot_base_to_hub);
-		transform = geometry::to_transform(tf2::toMsg(tf_transform));
-    }
-
-    catch (...)
-    {
-        static ros::Time prevPubTime(0);
-        if (ros::Time::now() - prevPubTime > ros::Duration(1))
-        {
-            ROS_WARN("Robot Position Lookup Failed");
-            prevPubTime = ros::Time::now();
-        }
-    }
-
-    return transform;
+	return robot_transform;
 }
 
 void publishOdometryData()

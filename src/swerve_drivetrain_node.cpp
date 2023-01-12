@@ -55,7 +55,7 @@ void update_motor_transforms()
 
 void apply_robot_twist(geometry::Twist desired_twist)
 {
-	std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo = calculate_swerve_outputs(desired_twist, wheel_transforms, 0.01);
+	std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo = calculate_swerve_outputs(desired_twist, wheel_transforms, 0.07);
 	set_swerve_output(sdo);
 }
 

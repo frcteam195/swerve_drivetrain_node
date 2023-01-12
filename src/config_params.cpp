@@ -27,6 +27,12 @@ namespace config_params
 	double drive_motion_cruise_velocity;
 	double drive_motion_accel;
 	double drive_motion_s_curve_strength;
+    double drive_velocity_kP;
+    double drive_velocity_kI;
+    double drive_velocity_kD;
+    double drive_velocity_kF;
+    double drive_velocity_iZone;
+    double drive_velocity_maxIAccum;
 
 	double steering_velocity_kP;
 	double steering_velocity_kI;
@@ -40,9 +46,12 @@ namespace config_params
 	double steering_motion_s_curve_strength;
 
 	double open_loop_ramp;
-	double supply_current_limit;
-	double supply_current_limit_threshold;
-	double supply_current_limit_threshold_exceeded_time;
+	double drive_supply_current_limit;
+	double drive_supply_current_limit_threshold;
+	double drive_supply_current_limit_threshold_exceeded_time;
+	double steering_supply_current_limit;
+	double steering_supply_current_limit_threshold;
+	double steering_supply_current_limit_threshold_exceeded_time;
 
 	bool init_params(ros::NodeHandle &n)
 	{
@@ -77,6 +86,12 @@ namespace config_params
 		required_params_found &= n.getParam(CKSP(drive_motion_cruise_velocity), drive_motion_cruise_velocity);
 		required_params_found &= n.getParam(CKSP(drive_motion_accel), drive_motion_accel);
 		required_params_found &= n.getParam(CKSP(drive_motion_s_curve_strength), drive_motion_s_curve_strength);
+		required_params_found &= n.getParam(CKSP(drive_velocity_kP),drive_velocity_kP);
+		required_params_found &= n.getParam(CKSP(drive_velocity_kI),drive_velocity_kI);
+		required_params_found &= n.getParam(CKSP(drive_velocity_kD),drive_velocity_kD);
+		required_params_found &= n.getParam(CKSP(drive_velocity_kF),drive_velocity_kF);
+		required_params_found &= n.getParam(CKSP(drive_velocity_iZone),drive_velocity_iZone);
+		required_params_found &= n.getParam(CKSP(drive_velocity_maxIAccum),drive_velocity_maxIAccum);
 		required_params_found &= n.getParam(CKSP(steering_velocity_kP), steering_velocity_kP);
 		required_params_found &= n.getParam(CKSP(steering_velocity_kI), steering_velocity_kI);
 		required_params_found &= n.getParam(CKSP(steering_velocity_kD), steering_velocity_kD);
@@ -88,9 +103,12 @@ namespace config_params
 		required_params_found &= n.getParam(CKSP(steering_motion_accel), steering_motion_accel);
 		required_params_found &= n.getParam(CKSP(steering_motion_s_curve_strength), steering_motion_s_curve_strength);
 		required_params_found &= n.getParam(CKSP(open_loop_ramp), open_loop_ramp);
-		required_params_found &= n.getParam(CKSP(supply_current_limit), supply_current_limit);
-		required_params_found &= n.getParam(CKSP(supply_current_limit_threshold), supply_current_limit_threshold);
-		required_params_found &= n.getParam(CKSP(supply_current_limit_threshold_exceeded_time), supply_current_limit_threshold_exceeded_time);
+		required_params_found &= n.getParam(CKSP(drive_supply_current_limit), drive_supply_current_limit);
+		required_params_found &= n.getParam(CKSP(drive_supply_current_limit_threshold), drive_supply_current_limit_threshold);
+		required_params_found &= n.getParam(CKSP(drive_supply_current_limit_threshold_exceeded_time), drive_supply_current_limit_threshold_exceeded_time);
+		required_params_found &= n.getParam(CKSP(steering_supply_current_limit), steering_supply_current_limit);
+		required_params_found &= n.getParam(CKSP(steering_supply_current_limit_threshold), steering_supply_current_limit_threshold);
+		required_params_found &= n.getParam(CKSP(steering_supply_current_limit_threshold_exceeded_time), steering_supply_current_limit_threshold_exceeded_time);
 
 		if (!required_params_found)
 		{

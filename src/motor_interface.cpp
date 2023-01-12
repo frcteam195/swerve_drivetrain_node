@@ -6,6 +6,7 @@
 #include "swerve_drivetrain_node.hpp"
 #include "swerve_drive_helper.hpp"
 #include "config_params.hpp"
+#include <ck_utilities/ValueRamper.hpp>
 
 std::vector<Motor*> drive_motors;
 std::vector<Motor*> steering_motors;
@@ -17,17 +18,19 @@ void set_swerve_output(std::vector<std::pair<geometry::Pose, geometry::Twist>> s
 	std_msgs::Float32MultiArray msg;
 	for (size_t i = 0; i < drive_motors.size(); i++)
 	{
-		constexpr double MAX_DRIVE_VEL_L1_FALCON = 6380.0 / 8.14 * (0.1016 * M_PI) / 60.0;
-		drive_motors[i]->set( Motor::Control_Mode::PERCENT_OUTPUT, sdo[i].second.linear.x() / MAX_DRIVE_VEL_L1_FALCON, 0 );
+		//constexpr double MAX_DRIVE_VEL_L1_FALCON = 6380.0 / 8.14 * (0.1016 * M_PI) / 60.0;
+		//static ValueRamper target_speed(0.1, 0.75, 0.0, 4.0);
+		double speed_target_ramped = /*target_speed.calculateOutput(*/sdo[i].second.linear.x()/*)*/ / (0.1016 * M_PI) * 60.0;
+		drive_motors[i]->set( Motor::Control_Mode::VELOCITY, speed_target_ramped, 0 );
 		float delta = smallest_traversal(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI), ck::math::normalize_to_2_pi(sdo[i].first.orientation.yaw()));
 		msg.data.push_back(delta);
 		float target = (motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI) + delta;
-		steering_motors[i]->set( Motor::Control_Mode::MOTION_MAGIC, target / (2.0 * M_PI), 0 );
+		steering_motors[i]->set( Motor::Control_Mode::POSITION, target / (2.0 * M_PI), 0 );
 
 		drivetrain_diagnostics.modules[i].target_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(sdo[i].first.orientation.yaw()));
 		drivetrain_diagnostics.modules[i].actual_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI));
 		drivetrain_diagnostics.modules[i].target_speed_m_s = sdo[i].second.linear.x();
-		drivetrain_diagnostics.modules[i].actual_speed_m_s = motor_map[config_params::drive_motor_ids[i]].sensor_velocity / 8.14 * (0.1016 * M_PI) / 60.0;
+		drivetrain_diagnostics.modules[i].actual_speed_m_s = motor_map[config_params::drive_motor_ids[i]].sensor_velocity * (0.1016 * M_PI) / 60.0;
 
 	}
 }
@@ -65,7 +68,13 @@ void init_swerve_motors()
 		drive_motor->config().set_voltage_compensation_saturation( config_params::voltage_comp_saturation );
 		drive_motor->config().set_voltage_compensation_enabled( config_params::voltage_comp_enabled );
 		drive_motor->config().set_open_loop_ramp(config_params::open_loop_ramp);
-		drive_motor->config().set_supply_current_limit(true, config_params::supply_current_limit, config_params::supply_current_limit_threshold, config_params::supply_current_limit_threshold_exceeded_time);
+		drive_motor->config().set_supply_current_limit(true, config_params::drive_supply_current_limit, config_params::drive_supply_current_limit_threshold, config_params::drive_supply_current_limit_threshold_exceeded_time);
+		drive_motor->config().set_kP(config_params::drive_velocity_kP);
+		drive_motor->config().set_kI(config_params::drive_velocity_kI);
+		drive_motor->config().set_kD(config_params::drive_velocity_kD);
+		drive_motor->config().set_kF(config_params::drive_velocity_kF);
+		drive_motor->config().set_i_zone(config_params::drive_velocity_iZone);
+		drive_motor->config().set_max_i_accum(config_params::drive_velocity_maxIAccum);
 		drive_motor->config().set_closed_loop_ramp(config_params::drive_closed_loop_ramp);
 		drive_motor->config().apply();
 		drive_motors.push_back(drive_motor);
@@ -86,7 +95,7 @@ void init_swerve_motors()
 		steering_motor->config().set_voltage_compensation_saturation( config_params::voltage_comp_saturation );
 		steering_motor->config().set_voltage_compensation_enabled( config_params::voltage_comp_enabled );
 		steering_motor->config().set_open_loop_ramp(config_params::open_loop_ramp);
-		steering_motor->config().set_supply_current_limit(true, config_params::supply_current_limit, config_params::supply_current_limit_threshold, config_params::supply_current_limit_threshold_exceeded_time);
+		steering_motor->config().set_supply_current_limit(true, config_params::steering_supply_current_limit, config_params::steering_supply_current_limit_threshold, config_params::steering_supply_current_limit_threshold_exceeded_time);
 		steering_motor->config().set_kP(config_params::steering_velocity_kP);
 		steering_motor->config().set_kI(config_params::steering_velocity_kI);
 		steering_motor->config().set_kD(config_params::steering_velocity_kD);

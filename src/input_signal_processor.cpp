@@ -10,20 +10,22 @@ extern ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics drivetrain_diagnostics;
 
 float determine_average_angular_velocity()
 {
-	geometry::Transform robot_transform = get_robot_transform();
-	static float last_angle = robot_transform.angular.yaw();
-	float current_angle = robot_transform.angular.yaw();
-	static ck::MovingAverage average_delta_position(10);
-	average_delta_position.addSample(current_angle - last_angle);
-	last_angle = current_angle;
+	float temp = ck::math::deg2rad(drivetrain_diagnostics.actual_angular_speed_deg_s);
+	// geometry::Transform robot_transform = get_robot_transform();
+	// static float last_angle = robot_transform.angular.yaw();
+	// float current_angle = robot_transform.angular.yaw();
+	// static ck::MovingAverage average_delta_position(10);
+	// average_delta_position.addSample(current_angle - last_angle);
+	// last_angle = current_angle;
 
-	static ros::Time last_time = ros::Time::now();
-	ros::Time current_time = ros::Time::now();
-	float duration_m_s = (current_time.toSec() - last_time.toSec()) * 1000.0;
-	static ck::MovingAverage average_time(10);
-	average_time.addSample(duration_m_s);
+	// static ros::Time last_time = ros::Time::now();
+	// ros::Time current_time = ros::Time::now();
+	// float duration_m_s = (current_time.toSec() - last_time.toSec()) * 1000.0;
+	// static ck::MovingAverage average_time(10);
+	// average_time.addSample(duration_m_s);
 
-	return average_delta_position.getAverage() / average_time.getAverage();
+	// return average_delta_position.getAverage() / average_time.getAverage();
+	return temp;
 }
 
 geometry::Twist get_twist_from_HMI()
@@ -35,23 +37,39 @@ geometry::Twist get_twist_from_HMI()
 	double direction = hmi_signals.drivetrain_swerve_direction;
 	double percent_max_ang_vel = hmi_signals.drivetrain_swerve_percent_angular_rot;
 
-	static bool resist_rotation = false;
+	static bool resist_rotation = true;
 
 	float target_angular_velocity = (percent_max_ang_vel * config_params::robot_max_ang_vel);
-
 	drivetrain_diagnostics.target_angular_speed_deg_s = ck::math::rad2deg(target_angular_velocity);
 
-	if(resist_rotation)
+	static float last_target_angular_velocity = target_angular_velocity;
+	bool disable_velocity_resistance = false;
+	static double last_reset = ros::Time::now().toSec();
+	if(abs(target_angular_velocity) < abs(last_target_angular_velocity) ||
+	   (target_angular_velocity == 0 && !last_target_angular_velocity == 0))
+	{
+		last_reset = ros::Time::now().toSec();
+	}
+	if (ros::Time::now().toSec() < last_reset + 1.5)
+	{
+		disable_velocity_resistance = true;
+	}
+
+	last_target_angular_velocity = target_angular_velocity;
+
+	if(resist_rotation && !disable_velocity_resistance)
 	{
 		float average_angular_velocity = determine_average_angular_velocity();
 		if(abs(target_angular_velocity) < abs(average_angular_velocity))
 		{
 			float angular_velocity_error = target_angular_velocity - average_angular_velocity;
-			float angular_response_kP = 1.0;
+			float angular_response_kP = 1.25;
 			float angular_command_offset = angular_velocity_error * angular_response_kP;
 			target_angular_velocity += angular_command_offset;
 		}
 	}
+	drivetrain_diagnostics.compensated_target_angular_speed_deg_s = ck::math::rad2deg(target_angular_velocity);
+
 
 	geometry::Twist return_twist;
 
