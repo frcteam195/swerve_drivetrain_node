@@ -37,6 +37,7 @@ ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics swerve_drivetrain_diagnostics;
 std::map<uint16_t, rio_control_node::Motor_Info> motor_map;
 rio_control_node::Robot_Status robot_status;
 ck_ros_msgs_node::HMI_Signals hmi_signals;
+ck_ros_msgs_node::Swerve_Drivetrain_Auto_Control auto_control;
 
 static ros::Publisher * diagnostics_publisher;
 ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics drivetrain_diagnostics;
@@ -131,6 +132,11 @@ void hmi_signals_callback(const ck_ros_msgs_node::HMI_Signals& hmi_signals_)
 	hmi_signals = hmi_signals_;
 }
 
+void auto_control_callback(const ck_ros_msgs_node::Swerve_Drivetrain_Auto_Control& auto_control_)
+{
+	auto_control = auto_control_;
+}
+
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "drivetrain");
@@ -149,6 +155,7 @@ int main(int argc, char **argv)
 	static ros::Subscriber motor_status_subscriber = node->subscribe("/MotorStatus", 1, motor_status_callback, ros::TransportHints().tcpNoDelay());
 	static ros::Subscriber robot_status_subscriber = node->subscribe("/RobotStatus", 1, robot_status_callback, ros::TransportHints().tcpNoDelay());
 	static ros::Subscriber hmi_signals_subscriber = node->subscribe("/HMISignals", 1, hmi_signals_callback, ros::TransportHints().tcpNoDelay());
+	static ros::Subscriber auto_signals_subscriber = node->subscribe("/AutoControl", 1, auto_control_callback, ros::TransportHints().tcpNoDelay());
 	ros::Publisher diagnostics_publisher_ = node->advertise<ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics>("/SwerveDiagnostics", 10);
 	diagnostics_publisher = &diagnostics_publisher_;
 	ros::spin();
