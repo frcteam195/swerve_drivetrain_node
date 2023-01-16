@@ -15,7 +15,10 @@ extern ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics drivetrain_diagnostics;
 float determine_average_angular_velocity()
 {
 	float temp = ck::math::deg2rad(drivetrain_diagnostics.actual_angular_speed_deg_s);
-	return temp;
+	temp = temp < ck::math::deg2rad(50.0) ? 0 : temp;
+	static ck::MovingAverage average_angular_speed(3);
+	average_angular_speed.addSample(temp);
+	return average_angular_speed.getAverage();
 }
 
 
