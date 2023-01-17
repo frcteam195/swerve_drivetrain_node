@@ -155,7 +155,7 @@ int main(int argc, char **argv)
 	static ros::Subscriber motor_status_subscriber = node->subscribe("/MotorStatus", 1, motor_status_callback, ros::TransportHints().tcpNoDelay());
 	static ros::Subscriber robot_status_subscriber = node->subscribe("/RobotStatus", 1, robot_status_callback, ros::TransportHints().tcpNoDelay());
 	static ros::Subscriber hmi_signals_subscriber = node->subscribe("/HMISignals", 1, hmi_signals_callback, ros::TransportHints().tcpNoDelay());
-	static ros::Subscriber auto_signals_subscriber = node->subscribe("/AutoControl", 1, auto_control_callback, ros::TransportHints().tcpNoDelay());
+	static ros::Subscriber auto_signals_subscriber = node->subscribe("/SwerveAutoControl", 1, auto_control_callback, ros::TransportHints().tcpNoDelay());
 	ros::Publisher diagnostics_publisher_ = node->advertise<ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics>("/SwerveDiagnostics", 10);
 	diagnostics_publisher = &diagnostics_publisher_;
 	ros::spin();
