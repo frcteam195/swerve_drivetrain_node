@@ -21,6 +21,7 @@
 #include "config_params.hpp"
 #include "input_signal_processor.hpp"
 
+#include "trajectory_generator_node/StartTrajectory.h"
 
 ros::NodeHandle* node;
 
@@ -84,6 +85,15 @@ void process_swerve_logic()
 	{
 		case rio_control_node::Robot_Status::AUTONOMOUS:
 		{
+			static bool run_once = true;
+			if (run_once)
+			{
+				run_once = false;
+				ros::ServiceClient start_traj_client = node->serviceClient<trajectory_generator_node::StartTrajectory>("start_trajectory");
+				trajectory_generator_node::StartTrajectory srvCall;
+				srvCall.request.trajectory_name = "sample_auto";
+				start_traj_client.call(srvCall);
+			}
 			set_brake_mode(true);
 			desired_robot_twist = get_twist_from_auto();
 		}
