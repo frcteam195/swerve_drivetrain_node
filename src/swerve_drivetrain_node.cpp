@@ -7,6 +7,7 @@
 #include <rio_control_node/Joystick_Status.h>
 #include <rio_control_node/Robot_Status.h>
 #include <rio_control_node/Motor_Status.h>
+#include "ck_utilities/Logger.hpp"
 #include <ck_utilities/geometry/geometry.hpp>
 #include <ck_utilities/geometry/geometry_ros_helpers.hpp>
 #include <ck_utilities/CKMath.hpp>
@@ -92,7 +93,15 @@ void process_swerve_logic()
 				ros::ServiceClient start_traj_client = node->serviceClient<trajectory_generator_node::StartTrajectory>("start_trajectory");
 				trajectory_generator_node::StartTrajectory srvCall;
 				srvCall.request.trajectory_name = "sample_auto";
-				start_traj_client.call(srvCall);
+				
+				if (start_traj_client.call(srvCall))
+				{
+					ck::log_info << "Successfully called service!" << std::flush;
+				}
+				else
+				{
+					ck::log_error << "Service call failed!" << std::flush;
+				}
 			}
 			set_brake_mode(true);
 			desired_robot_twist = get_twist_from_auto();
