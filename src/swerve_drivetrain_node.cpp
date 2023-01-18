@@ -44,6 +44,18 @@ ck_ros_msgs_node::Swerve_Drivetrain_Auto_Control auto_control;
 static ros::Publisher * diagnostics_publisher;
 ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics drivetrain_diagnostics;
 
+
+static ros::ServiceClient start_traj_client;
+static ros::ServiceClient& get_start_traj_client()
+{
+	if (node && !start_traj_client)
+	{
+		start_traj_client = node->serviceClient<trajectory_generator_node::StartTrajectory>("start_trajectory");
+	}
+	return start_traj_client;
+};
+
+
 void update_motor_transforms()
 {
 	//Update swerve steering transforms
@@ -90,11 +102,10 @@ void process_swerve_logic()
 			if (run_once)
 			{
 				run_once = false;
-				ros::ServiceClient start_traj_client = node->serviceClient<trajectory_generator_node::StartTrajectory>("start_trajectory");
 				trajectory_generator_node::StartTrajectory srvCall;
 				srvCall.request.trajectory_name = "sample_auto";
 				
-				if (start_traj_client.call(srvCall))
+				if (get_start_traj_client().call(srvCall))
 				{
 					ck::log_info << "Successfully called service!" << std::flush;
 				}
@@ -177,6 +188,11 @@ int main(int argc, char **argv)
 	static ros::Subscriber auto_signals_subscriber = node->subscribe("/SwerveAutoControl", 1, auto_control_callback, ros::TransportHints().tcpNoDelay());
 	ros::Publisher diagnostics_publisher_ = node->advertise<ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics>("/SwerveDiagnostics", 10);
 	diagnostics_publisher = &diagnostics_publisher_;
+
+
+ 	start_traj_client = node->serviceClient<trajectory_generator_node::StartTrajectory>("start_trajectory");
+
+
 	ros::spin();
 	return 0;
 }
