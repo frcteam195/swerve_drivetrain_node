@@ -65,7 +65,8 @@ geometry::Twist perform_heading_stabilization(geometry::Twist twist, geometry::P
 
 	if (enable_absolute_heading)
 	{
-		float heading_error = smallest_traversal(robot_pose.orientation.yaw(), heading_pose.orientation.yaw());
+		// maybe negative?
+		float heading_error = -smallest_traversal(robot_pose.orientation.yaw(), heading_pose.orientation.yaw());
 		float heading_response_kP = 1.0;
 		float heading_command_offset = heading_error * heading_response_kP;
 		target_angular_velocity += heading_command_offset;
@@ -120,7 +121,7 @@ geometry::Twist get_twist_from_auto()
 
 	// Always call both perform field alignment, and heading stabilization even if you know you'll
 	// never use field oriented so that the proper debugging data is set;
-	return_twist = perform_field_alignment(return_twist, false);
+	return_twist = perform_field_alignment(return_twist, true);
 	return_twist = perform_heading_stabilization(return_twist, heading_pose, true);
 
     return return_twist;
