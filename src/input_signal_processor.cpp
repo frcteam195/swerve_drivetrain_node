@@ -73,7 +73,7 @@ geometry::Twist perform_heading_stabilization(geometry::Twist twist, geometry::P
 
 	target_angular_velocity = std::clamp(target_angular_velocity, -config_params::robot_max_ang_vel, config_params::robot_max_ang_vel);
 
-	drivetrain_diagnostics.heading_absolute_compensated_angular_speed_deg_s = target_angular_velocity;
+	drivetrain_diagnostics.heading_absolute_compensated_angular_speed_deg_s = ck::math::rad2deg(target_angular_velocity);
 
 	twist.angular.yaw(target_angular_velocity);
 	return twist;
