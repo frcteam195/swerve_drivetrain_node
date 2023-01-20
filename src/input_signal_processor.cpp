@@ -29,6 +29,22 @@ geometry::Twist perform_heading_stabilization(geometry::Twist twist, geometry::P
 	static bool resist_rotation = true;
 
 	double target_angular_velocity = twist.angular.yaw();
+
+	geometry::Pose robot_pose;
+	robot_pose.transform(get_robot_transform());
+
+	if (enable_absolute_heading)
+	{
+		float heading_error = smallest_traversal(robot_pose.orientation.yaw(), heading_pose.orientation.yaw());
+		float heading_response_kP = 1.0;
+		float heading_command_offset = heading_error * heading_response_kP;
+		target_angular_velocity += heading_command_offset;
+	}
+
+	target_angular_velocity = std::clamp(target_angular_velocity, -config_params::robot_max_ang_vel, config_params::robot_max_ang_vel);
+
+	drivetrain_diagnostics.heading_absolute_compensated_angular_speed_deg_s = ck::math::rad2deg(target_angular_velocity);
+
 	static float last_target_angular_velocity = target_angular_velocity;
 	bool disable_velocity_resistance = false;
 	static double last_reset = ros::Time::now().toSec();
@@ -59,21 +75,6 @@ geometry::Twist perform_heading_stabilization(geometry::Twist twist, geometry::P
 	target_angular_velocity = std::clamp(target_angular_velocity, -config_params::robot_max_ang_vel, config_params::robot_max_ang_vel);
 
 	drivetrain_diagnostics.compensated_target_angular_speed_deg_s = ck::math::rad2deg(target_angular_velocity);
-
-	geometry::Pose robot_pose;
-	robot_pose.transform(get_robot_transform());
-
-	if (enable_absolute_heading)
-	{
-		float heading_error = smallest_traversal(robot_pose.orientation.yaw(), heading_pose.orientation.yaw());
-		float heading_response_kP = 1.0;
-		float heading_command_offset = heading_error * heading_response_kP;
-		target_angular_velocity += heading_command_offset;
-	}
-
-	target_angular_velocity = std::clamp(target_angular_velocity, -config_params::robot_max_ang_vel, config_params::robot_max_ang_vel);
-
-	drivetrain_diagnostics.heading_absolute_compensated_angular_speed_deg_s = ck::math::rad2deg(target_angular_velocity);
 
 	twist.angular.yaw(target_angular_velocity);
 	return twist;
@@ -118,13 +119,13 @@ geometry::Twist get_twist_from_auto()
 	return_twist = geometry::to_twist(auto_control.twist);
 	geometry::Pose heading_pose = geometry::to_pose(auto_control.pose);
 
-	drivetrain_diagnostics.field_orient = true;
-	drivetrain_diagnostics.target_angular_speed_deg_s = ck::math::rad2deg(return_twist.angular.yaw());
-
 	// Always call both perform field alignment, and heading stabilization even if you know you'll
 	// never use field oriented so that the proper debugging data is set;
 	return_twist = perform_field_alignment(return_twist, true);
 	return_twist = perform_heading_stabilization(return_twist, heading_pose, true);
+
+	drivetrain_diagnostics.field_orient = true;
+	drivetrain_diagnostics.target_angular_speed_deg_s = ck::math::rad2deg(return_twist.angular.yaw());
 
     return return_twist;
 }
