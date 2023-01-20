@@ -7,11 +7,13 @@
 #include <rio_control_node/Joystick_Status.h>
 #include <rio_control_node/Robot_Status.h>
 #include <rio_control_node/Motor_Status.h>
+#include <ck_utilities/Logger.hpp>
 #include <ck_utilities/geometry/geometry.hpp>
 #include <ck_utilities/geometry/geometry_ros_helpers.hpp>
 #include <ck_utilities/CKMath.hpp>
 #include <ck_ros_msgs_node/Swerve_Drivetrain_Diagnostics.h>
 #include <ck_ros_msgs_node/HMI_Signals.h>
+#include <trajectory_generator_node/StartTrajectory.h>
 
 #include "swerve_drivetrain_node.hpp"
 
@@ -41,6 +43,19 @@ ck_ros_msgs_node::Swerve_Drivetrain_Auto_Control auto_control;
 
 static ros::Publisher * diagnostics_publisher;
 ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics drivetrain_diagnostics;
+
+bool run_once = true;
+
+static ros::ServiceClient start_traj_client;
+static ros::ServiceClient& get_start_traj_client()
+{
+	if (node && !start_traj_client)
+	{
+		start_traj_client = node->serviceClient<trajectory_generator_node::StartTrajectory>("start_trajectory");
+	}
+	return start_traj_client;
+};
+
 
 void update_motor_transforms()
 {
@@ -84,6 +99,21 @@ void process_swerve_logic()
 	{
 		case rio_control_node::Robot_Status::AUTONOMOUS:
 		{
+			if (run_once)
+			{
+				run_once = false;
+				trajectory_generator_node::StartTrajectory srvCall;
+				srvCall.request.trajectory_name = "sample_auto";
+				
+				if (get_start_traj_client().call(srvCall))
+				{
+					ck::log_info << "Successfully called service!" << std::flush;
+				}
+				else
+				{
+					ck::log_error << "Service call failed!" << std::flush;
+				}
+			}
 			set_brake_mode(true);
 			desired_robot_twist = get_twist_from_auto();
 		}
@@ -96,6 +126,7 @@ void process_swerve_logic()
 		break;
 		default:
 		{
+			run_once = true;
 			for (Motor* mF : drive_motors)
 			{
 				mF->set( Motor::Control_Mode::PERCENT_OUTPUT, 0, 0 );
