@@ -35,6 +35,7 @@ geometry::Twist perform_heading_stabilization(geometry::Twist twist, geometry::P
 
 	if (enable_absolute_heading)
 	{
+		drivetrain_diagnostics.auto_target_heading = ck::math::rad2deg(heading_pose.orientation.yaw());
 		float heading_error = smallest_traversal(robot_pose.orientation.yaw(), heading_pose.orientation.yaw());
 		float heading_response_kP = 1.0;
 		float heading_command_offset = heading_error * heading_response_kP;
