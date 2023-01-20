@@ -43,6 +43,7 @@ catkin_package(
   hmi_agent_node
   dynamic_reconfigure
   frc_robot_utilities_node
+  trajectory_generator_node
 )
 
 ###########
