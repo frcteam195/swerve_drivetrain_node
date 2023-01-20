@@ -54,7 +54,7 @@ void tf2_init()
 
 geometry::Transform get_robot_transform()
 {
-	drivetrain_diagnostics.actual_heading = ck::math::rad2deg(robot_transform.angular.yaw());
+	// drivetrain_diagnostics.actual_heading = ck::math::rad2deg(robot_transform.angular.yaw());
 	return robot_transform;
 }
 

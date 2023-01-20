@@ -32,6 +32,7 @@ geometry::Twist perform_heading_stabilization(geometry::Twist twist, geometry::P
 
 	geometry::Pose robot_pose;
 	robot_pose.transform(get_robot_transform());
+	drivetrain_diagnostics.actual_heading = ck::math::rad2deg(robot_pose.orientation.yaw());
 
 	if (enable_absolute_heading)
 	{
