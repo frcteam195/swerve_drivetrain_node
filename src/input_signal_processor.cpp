@@ -118,13 +118,13 @@ geometry::Twist get_twist_from_auto()
 	return_twist = geometry::to_twist(auto_control.twist);
 	geometry::Pose heading_pose = geometry::to_pose(auto_control.pose);
 
+	drivetrain_diagnostics.field_orient = true;
+	drivetrain_diagnostics.target_angular_speed_deg_s = ck::math::rad2deg(return_twist.angular.yaw());
+
 	// Always call both perform field alignment, and heading stabilization even if you know you'll
 	// never use field oriented so that the proper debugging data is set;
 	return_twist = perform_field_alignment(return_twist, true);
 	return_twist = perform_heading_stabilization(return_twist, heading_pose, true);
-
-	drivetrain_diagnostics.field_orient = true;
-	drivetrain_diagnostics.target_angular_speed_deg_s = ck::math::rad2deg(return_twist.angular.yaw());
 
     return return_twist;
 }
