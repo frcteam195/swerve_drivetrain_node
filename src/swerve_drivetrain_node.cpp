@@ -104,7 +104,7 @@ void process_swerve_logic()
 				run_once = false;
 				trajectory_generator_node::StartTrajectory srvCall;
 				srvCall.request.trajectory_name = "sample_auto";
-				
+
 				if (get_start_traj_client().call(srvCall))
 				{
 					ck::log_info << "Successfully called service!" << std::flush;
@@ -134,6 +134,9 @@ void process_swerve_logic()
 		}
 		break;
 	}
+
+	geometry::Transform robot_pose = get_robot_transform();
+	drivetrain_diagnostics.actual_heading = ck::math::rad2deg(robot_pose.angular.yaw());
 
 	apply_robot_twist(desired_robot_twist);
 	publishOdometryData();
