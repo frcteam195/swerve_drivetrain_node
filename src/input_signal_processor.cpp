@@ -30,14 +30,13 @@ geometry::Twist perform_heading_stabilization(geometry::Twist twist, geometry::P
 
 	double target_angular_velocity = twist.angular.yaw();
 
-	geometry::Pose robot_pose;
-	robot_pose = robot_pose.transform(get_robot_transform());
-	drivetrain_diagnostics.actual_heading = ck::math::rad2deg(robot_pose.orientation.yaw());
+	geometry::Transform robot_pose;
+	drivetrain_diagnostics.actual_heading = ck::math::rad2deg(robot_pose.angular.yaw());
 
 	if (enable_absolute_heading)
 	{
 		drivetrain_diagnostics.auto_target_heading = ck::math::rad2deg(heading_pose.orientation.yaw());
-		float heading_error = smallest_traversal(robot_pose.orientation.yaw(), heading_pose.orientation.yaw());
+		float heading_error = smallest_traversal(robot_pose.angular.yaw(), heading_pose.orientation.yaw());
 		float heading_response_kP = 1.0;
 		float heading_command_offset = heading_error * heading_response_kP;
 		target_angular_velocity += heading_command_offset;
