@@ -4,9 +4,9 @@
 #include <iostream>
 
 #include <nav_msgs/Odometry.h>
-#include <rio_control_node/Joystick_Status.h>
-#include <rio_control_node/Robot_Status.h>
-#include <rio_control_node/Motor_Status.h>
+#include <ck_ros_base_msgs_node/Joystick_Status.h>
+#include <ck_ros_base_msgs_node/Robot_Status.h>
+#include <ck_ros_base_msgs_node/Motor_Status.h>
 #include <ck_utilities/Logger.hpp>
 #include <ck_utilities/geometry/geometry.hpp>
 #include <ck_utilities/geometry/geometry_ros_helpers.hpp>
@@ -36,8 +36,8 @@ std::vector<geometry::Transform> wheel_transforms;
 ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics swerve_drivetrain_diagnostics;
 
 
-std::map<uint16_t, rio_control_node::Motor_Info> motor_map;
-rio_control_node::Robot_Status robot_status;
+std::map<uint16_t, ck_ros_base_msgs_node::Motor_Info> motor_map;
+ck_ros_base_msgs_node::Robot_Status robot_status;
 ck_ros_msgs_node::HMI_Signals hmi_signals;
 ck_ros_msgs_node::Swerve_Drivetrain_Auto_Control auto_control;
 
@@ -97,7 +97,7 @@ void process_swerve_logic()
 
 	switch (robot_status.robot_state)
 	{
-		case rio_control_node::Robot_Status::AUTONOMOUS:
+		case ck_ros_base_msgs_node::Robot_Status::AUTONOMOUS:
 		{
 			if (run_once)
 			{
@@ -118,7 +118,7 @@ void process_swerve_logic()
 			desired_robot_twist = get_twist_from_auto();
 		}
 		break;
-		case rio_control_node::Robot_Status::TELEOP:
+		case ck_ros_base_msgs_node::Robot_Status::TELEOP:
 		{
 			set_brake_mode(hmi_signals.drivetrain_brake);
 			desired_robot_twist = get_twist_from_HMI();
@@ -143,9 +143,9 @@ void process_swerve_logic()
 	publish_diagnostic_data();
 }
 
-void motor_status_callback(const rio_control_node::Motor_Status& motor_status_)
+void motor_status_callback(const ck_ros_base_msgs_node::Motor_Status& motor_status_)
 {
-	std::map<uint16_t, rio_control_node::Motor_Info> receipt_map;
+	std::map<uint16_t, ck_ros_base_msgs_node::Motor_Info> receipt_map;
 	for(auto &i : motor_status_.motors)
 	{
 		receipt_map[i.id] = i;
@@ -156,7 +156,7 @@ void motor_status_callback(const rio_control_node::Motor_Status& motor_status_)
 	process_swerve_logic();
 }
 
-void robot_status_callback(const rio_control_node::Robot_Status& robot_status_)
+void robot_status_callback(const ck_ros_base_msgs_node::Robot_Status& robot_status_)
 {
 	robot_status = robot_status_;
 }

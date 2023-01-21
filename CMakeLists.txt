@@ -10,7 +10,7 @@ project(${PROJECT_NAME})
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp std_msgs message_generation ck_ros_msgs_node rio_control_node ck_utilities_node hmi_agent_node frc_robot_utilities_node dynamic_reconfigure)
+find_package(catkin REQUIRED COMPONENTS roscpp std_msgs message_generation ck_ros_msgs_node ck_ros_base_msgs_node ck_utilities_node hmi_agent_node frc_robot_utilities_node dynamic_reconfigure)
 
 # add_message_files(
 #   FILES
@@ -29,7 +29,7 @@ generate_dynamic_reconfigure_options(
 
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES rio_control_node
+#  LIBRARIES ck_ros_base_msgs_node
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
   CATKIN_DEPENDS
@@ -37,7 +37,7 @@ catkin_package(
   message_generation
   message_runtime
   ck_ros_msgs_node
-  rio_control_node
+  ck_ros_base_msgs_node
   nav_msgs
   ck_utilities_node
   hmi_agent_node
