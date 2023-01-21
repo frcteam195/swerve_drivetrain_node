@@ -24,9 +24,9 @@ float determine_average_angular_velocity()
 
 // This isn't a really great place for this to live, but because of how the downstream
 // control is laid out I'm going to put it here - MGT
-geometry::Twist perform_heading_stabilization(geometry::Twist twist, geometry::Pose heading_pose, bool enable_absolute_heading)
+geometry::Twist perform_heading_stabilization(geometry::Twist twist, geometry::Pose heading_pose, bool enable_absolute_heading, bool resist_rotation = true)
 {
-	static bool resist_rotation = true;
+	// static bool resist_rotation = true;
 
 	double target_angular_velocity = twist.angular.yaw();
 
