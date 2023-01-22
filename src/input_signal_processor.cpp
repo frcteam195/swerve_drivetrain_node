@@ -28,63 +28,57 @@ float determine_average_angular_velocity()
 // control is laid out I'm going to put it here - MGT
 geometry::Twist perform_heading_stabilization(geometry::Twist twist, geometry::Pose heading_pose, bool enable_absolute_heading, bool resist_rotation = true)
 {
-    (void) resist_rotation;
-    (void) enable_absolute_heading;
-    (void) heading_pose;
-    determine_average_angular_velocity();
-	// static bool resist_rotation = true;
-
 	double target_angular_velocity = twist.angular.yaw();
-    return twist;
 
-	// geometry::Transform robot_pose = get_robot_transform();
+	geometry::Transform robot_pose = get_robot_transform();
+    float average_angular_velocity = determine_average_angular_velocity();
 
-	// if (enable_absolute_heading)
-	// {
-	// 	drivetrain_diagnostics.auto_target_heading = ck::math::rad2deg(heading_pose.orientation.yaw());
-	// 	float heading_error = smallest_traversal(robot_pose.angular.yaw(), heading_pose.orientation.yaw());
-	// 	float heading_response_kP = 1.0;
-	// 	float heading_command_offset = heading_error * heading_response_kP;
-	// 	target_angular_velocity += heading_command_offset;
-	// }
+	if (enable_absolute_heading)
+	{
+		drivetrain_diagnostics.auto_target_heading = ck::math::rad2deg(heading_pose.orientation.yaw());
+		float heading_error = smallest_traversal(robot_pose.angular.yaw(), heading_pose.orientation.yaw());
+		float heading_response_kP = 1.0;
+		float heading_command_offset = heading_error * heading_response_kP;
+		target_angular_velocity += heading_command_offset;
+	}
 
-	// target_angular_velocity = std::clamp(target_angular_velocity, -config_params::robot_max_ang_vel, config_params::robot_max_ang_vel);
+	target_angular_velocity = std::clamp(target_angular_velocity, -config_params::robot_max_ang_vel, config_params::robot_max_ang_vel);
 
-	// drivetrain_diagnostics.heading_absolute_compensated_angular_speed_deg_s = ck::math::rad2deg(target_angular_velocity);
+	drivetrain_diagnostics.heading_absolute_compensated_angular_speed_deg_s = ck::math::rad2deg(target_angular_velocity);
 
-	// static float last_target_angular_velocity = target_angular_velocity;
-	// bool disable_velocity_resistance = false;
-	// static double last_reset = ros::Time::now().toSec();
-	// if(abs(target_angular_velocity) < abs(last_target_angular_velocity) ||
-	//    (target_angular_velocity == 0 && !last_target_angular_velocity == 0))
-	// {
-	// 	last_reset = ros::Time::now().toSec();
-	// }
-	// if (ros::Time::now().toSec() < last_reset + 1.5)
-	// {
-	// 	disable_velocity_resistance = true;
-	// }
+	static float last_target_angular_velocity = target_angular_velocity;
+	bool disable_velocity_resistance = false;
+	static double last_reset = ros::Time::now().toSec();
+	if(abs(target_angular_velocity) < abs(last_target_angular_velocity) ||
+	   (target_angular_velocity == 0 && !last_target_angular_velocity == 0))
+	{
+		last_reset = ros::Time::now().toSec();
+	}
+	if (ros::Time::now().toSec() < last_reset + 1.5)
+	{
+		disable_velocity_resistance = true;
+	}
 
-	// last_target_angular_velocity = target_angular_velocity;
+	last_target_angular_velocity = target_angular_velocity;
 
-	// if(resist_rotation && !disable_velocity_resistance)
-	// {
-	// 	float average_angular_velocity = determine_average_angular_velocity();
-	// 	if(abs(target_angular_velocity) < abs(average_angular_velocity))
-	// 	{
-	// 		float angular_velocity_error = target_angular_velocity - average_angular_velocity;
-	// 		float angular_response_kP = 1.25;
-	// 		float angular_command_offset = angular_velocity_error * angular_response_kP;
-	// 		target_angular_velocity += angular_command_offset;
-	// 	}
-	// }
+	if(resist_rotation && !disable_velocity_resistance)
+	{
+		if(abs(target_angular_velocity) < abs(average_angular_velocity))
+		{
+			float angular_velocity_error = target_angular_velocity - average_angular_velocity;
+			float angular_response_kP = .1;
+			float angular_command_offset = angular_velocity_error * angular_response_kP;
+            (void) angular_command_offset;
+			target_angular_velocity += angular_command_offset;
+		}
+	}
 
-	// target_angular_velocity = std::clamp(target_angular_velocity, -config_params::robot_max_ang_vel, config_params::robot_max_ang_vel);
+	target_angular_velocity = std::clamp(target_angular_velocity, -config_params::robot_max_ang_vel, config_params::robot_max_ang_vel);
 
-	// drivetrain_diagnostics.compensated_target_angular_speed_deg_s = ck::math::rad2deg(target_angular_velocity);
+	drivetrain_diagnostics.compensated_target_angular_speed_deg_s = ck::math::rad2deg(target_angular_velocity);
 
-	// twist.angular.yaw(target_angular_velocity);
-	// return twist;
+	twist.angular.yaw(target_angular_velocity);
+	return twist;
 }
 
 geometry::Twist perform_field_alignment(geometry::Twist input, bool field_orient)
