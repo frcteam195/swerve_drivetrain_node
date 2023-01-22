@@ -104,6 +104,7 @@ void process_swerve_logic()
 				run_once = false;
 				trajectory_generator_node::StartTrajectory srvCall;
 				srvCall.request.trajectory_name = "sample_auto";
+				// srvCall.request.trajectory_name = "straight_line";
 
 				if (get_start_traj_client().call(srvCall))
 				{
