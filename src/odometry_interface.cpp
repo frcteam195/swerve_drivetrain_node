@@ -26,7 +26,7 @@ void robot_odometry_subscriber(const nav_msgs::Odometry &odom)
 	geometry::Twist drivetrain_twist = geometry::to_twist(odom.twist.twist);
 	drivetrain_diagnostics.field_actual_x_translation_m_s = drivetrain_twist.linear.x();
 	drivetrain_diagnostics.field_actual_y_translation_m_s = drivetrain_twist.linear.y();
-	drivetrain_diagnostics.actual_angular_speed_deg_s = ck::math::rad2deg(drivetrain_twist.angular.yaw());
+	// drivetrain_diagnostics.actual_angular_speed_deg_s = ck::math::rad2deg(drivetrain_twist.angular.yaw());
 	drivetrain_diagnostics.actual_total_speed_m_s = drivetrain_twist.linear.norm();
 
 	robot_transform.angular = geometry::to_rotation(odom.pose.pose.orientation);

@@ -22,6 +22,7 @@
 #include "odometry_interface.hpp"
 #include "config_params.hpp"
 #include "input_signal_processor.hpp"
+#include <std_msgs/Float32.h>
 
 
 ros::NodeHandle* node;
@@ -40,6 +41,7 @@ std::map<uint16_t, ck_ros_base_msgs_node::Motor_Info> motor_map;
 ck_ros_base_msgs_node::Robot_Status robot_status;
 ck_ros_msgs_node::HMI_Signals hmi_signals;
 ck_ros_msgs_node::Swerve_Drivetrain_Auto_Control auto_control;
+float raw_yaw_dps = 0;
 
 static ros::Publisher * diagnostics_publisher;
 ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics drivetrain_diagnostics;
@@ -171,6 +173,11 @@ void auto_control_callback(const ck_ros_msgs_node::Swerve_Drivetrain_Auto_Contro
 	auto_control = auto_control_;
 }
 
+void raw_dps_callback(const std_msgs::Float32& raw_dps)
+{
+    raw_yaw_dps = raw_dps.data;
+}
+
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "drivetrain");
@@ -190,6 +197,7 @@ int main(int argc, char **argv)
 	static ros::Subscriber robot_status_subscriber = node->subscribe("/RobotStatus", 1, robot_status_callback, ros::TransportHints().tcpNoDelay());
 	static ros::Subscriber hmi_signals_subscriber = node->subscribe("/HMISignals", 1, hmi_signals_callback, ros::TransportHints().tcpNoDelay());
 	static ros::Subscriber auto_signals_subscriber = node->subscribe("/SwerveAutoControl", 1, auto_control_callback, ros::TransportHints().tcpNoDelay());
+	static ros::Subscriber raw_dps_signal_subscriber = node->subscribe("/rawdpsgyro", 1, raw_dps_callback, ros::TransportHints().tcpNoDelay());
 	ros::Publisher diagnostics_publisher_ = node->advertise<ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics>("/SwerveDiagnostics", 10);
 	diagnostics_publisher = &diagnostics_publisher_;
 	ros::spin();
