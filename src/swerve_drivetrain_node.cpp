@@ -27,6 +27,8 @@
 
 ros::NodeHandle* node;
 
+ck::PIDController headingController;
+
 float mJoystick1x;
 float mJoystick1y;
 std::mutex mThreadCtrlLock;
@@ -104,18 +106,19 @@ void process_swerve_logic()
 			if (run_once)
 			{
 				run_once = false;
-				trajectory_generator_node::StartTrajectory srvCall;
-				srvCall.request.trajectory_name = "sample_auto";
-				// srvCall.request.trajectory_name = "straight_line";
+				get_start_traj_client();
+				// trajectory_generator_node::StartTrajectory srvCall;
+				// srvCall.request.trajectory_name = "sample_auto";
+				// // srvCall.request.trajectory_name = "straight_line";
 
-				if (get_start_traj_client().call(srvCall))
-				{
-					ck::log_info << "Successfully called service!" << std::flush;
-				}
-				else
-				{
-					ck::log_error << "Service call failed!" << std::flush;
-				}
+				// if (get_start_traj_client().call(srvCall))
+				// {
+				// 	ck::log_info << "Successfully called service!" << std::flush;
+				// }
+				// else
+				// {
+				// 	ck::log_error << "Service call failed!" << std::flush;
+				// }
 			}
 			set_brake_mode(true);
 			desired_robot_twist = get_twist_from_auto();
@@ -129,6 +132,7 @@ void process_swerve_logic()
 		break;
 		default:
 		{
+			headingController.update(0, 0);
 			run_once = true;
 			for (Motor* mF : drive_motors)
 			{
@@ -191,6 +195,9 @@ int main(int argc, char **argv)
 		ROS_ERROR("NOT ALL SWERVE PARAMETERS SET - NODE TERMINATING");
 		return 1;
 	}
+
+	headingController = ck::PIDController(5.0, 0.0, 0.0);
+	headingController.initTuner(node, "HeadingPID");
 
 	init_swerve_motors();
 
