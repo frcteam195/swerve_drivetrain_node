@@ -27,7 +27,7 @@
 
 ros::NodeHandle* node;
 
-ck::PIDController headingController(5, 0, 0);
+ck::PIDController headingController(1, 0, 0);
 
 float mJoystick1x;
 float mJoystick1y;
@@ -132,7 +132,6 @@ void process_swerve_logic()
 		break;
 		default:
 		{
-			headingController.update(0, 0);
 			run_once = true;
 			for (Motor* mF : drive_motors)
 			{
