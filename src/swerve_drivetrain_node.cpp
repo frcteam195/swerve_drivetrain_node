@@ -27,7 +27,7 @@
 
 ros::NodeHandle* node;
 
-ck::PIDController headingController;
+ck::PIDController headingController(5, 0, 0);
 
 float mJoystick1x;
 float mJoystick1y;
@@ -196,7 +196,6 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	headingController = ck::PIDController(5.0, 0.0, 0.0);
 	headingController.initTuner(node, "HeadingPID");
 
 	init_swerve_motors();
