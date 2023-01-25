@@ -14,5 +14,5 @@ extern ck_ros_msgs_node::HMI_Signals hmi_signals;
 extern ck_ros_msgs_node::Swerve_Drivetrain_Auto_Control auto_control;
 extern std::vector<geometry::Transform> wheel_transforms;
 extern ros::NodeHandle* node;
-extern ck::PIDController headingController;
+extern ck::PIDController headingVelocityPID;
 extern float raw_yaw_dps;
