@@ -27,6 +27,8 @@
 
 ros::NodeHandle* node;
 
+ck::PIDController headingVelocityPID(0.05, 0.0, 0.01, 1.0, 0.2);
+
 float mJoystick1x;
 float mJoystick1y;
 std::mutex mThreadCtrlLock;
@@ -104,6 +106,7 @@ void process_swerve_logic()
 			if (run_once)
 			{
 				run_once = false;
+				// get_start_traj_client();
 				trajectory_generator_node::StartTrajectory srvCall;
 				srvCall.request.trajectory_name = "sample_auto";
 				// srvCall.request.trajectory_name = "straight_line";
@@ -191,6 +194,8 @@ int main(int argc, char **argv)
 		ROS_ERROR("NOT ALL SWERVE PARAMETERS SET - NODE TERMINATING");
 		return 1;
 	}
+
+	// headingController.initTuner(node, "HeadingPID");
 
 	init_swerve_motors();
 
