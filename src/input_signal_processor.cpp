@@ -31,14 +31,14 @@ geometry::Twist perform_heading_stabilization(geometry::Twist twist, geometry::P
 	{
 		drivetrain_diagnostics.auto_target_heading = ck::math::rad2deg(heading_pose.orientation.yaw());
 		float heading_error = smallest_traversal(robot_pose.angular.yaw(), heading_pose.orientation.yaw());
-		float heading_response_kP = 8.0;
+		float heading_response_kP = 1.0;
 		float heading_command_offset = heading_error * heading_response_kP;
 		// double pidOutput = headingController.update(heading_error);
 		double pidOutput = headingVelocityPID.update(target_angular_velocity, average_angular_velocity);
 		// target_angular_velocity += heading_command_offset;
 		(void)heading_command_offset;
-		// target_angular_velocity += pidOutput;
-		target_angular_velocity = pidOutput;
+		target_angular_velocity += pidOutput;
+		// target_angular_velocity = pidOutput;
 	}
 
 	target_angular_velocity = std::clamp(target_angular_velocity, -config_params::robot_max_ang_vel, config_params::robot_max_ang_vel);

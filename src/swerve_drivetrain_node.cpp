@@ -27,7 +27,8 @@
 
 ros::NodeHandle* node;
 
-ck::PIDController headingVelocityPID(0.05, 0.0, 0.01, 1.0, 0.2);
+// ck::PIDController headingVelocityPID(0.05, 0.0, 0.01, 1.0, 0.2);
+ck::PIDController headingVelocityPID(0.3, 0.0, 0.0, 0.0, 0.2);
 
 float mJoystick1x;
 float mJoystick1y;
