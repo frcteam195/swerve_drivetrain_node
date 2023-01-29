@@ -123,7 +123,7 @@ geometry::Twist get_twist_from_auto()
 
 	// Always call both perform field alignment, and heading stabilization even if you know you'll
 	// never use field oriented so that the proper debugging data is set;
-	return_twist = perform_field_alignment(return_twist, true);
+	return_twist = perform_field_alignment(return_twist, false);
 	return_twist = perform_heading_stabilization(return_twist, heading_pose, true, false);
 
 	drivetrain_diagnostics.field_orient = true;
