@@ -17,7 +17,6 @@
 tf2_ros::TransformBroadcaster * tfBroadcaster;
 tf2_ros::TransformListener *tfListener;
 tf2_ros::Buffer tfBuffer;
-extern ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics drivetrain_diagnostics;
 static geometry::Transform robot_transform;
 
 void robot_odometry_subscriber(const nav_msgs::Odometry &odom)
@@ -45,16 +44,8 @@ void tf2_init()
 	}
 }
 
-// void update_drivetrain_diagnostics_position()
-// {
-// 	// geometry::Transform robot_transform = get_robot_transform();
-
-
-// }
-
 geometry::Transform get_robot_transform()
 {
-	// drivetrain_diagnostics.actual_heading = ck::math::rad2deg(robot_transform.angular.yaw());
 	return robot_transform;
 }
 
