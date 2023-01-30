@@ -15,15 +15,11 @@ extern ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics drivetrain_diagnostics;
 
 void set_swerve_output(std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo)
 {
-	std_msgs::Float32MultiArray msg;
 	for (size_t i = 0; i < drive_motors.size(); i++)
 	{
-		//constexpr double MAX_DRIVE_VEL_L1_FALCON = 6380.0 / 8.14 * (0.1016 * M_PI) / 60.0;
-		//static ValueRamper target_speed(0.1, 0.75, 0.0, 4.0);
-		double speed_target_ramped = /*target_speed.calculateOutput(*/sdo[i].second.linear.x()/*)*/ / (0.1016 * M_PI) * 60.0;
-		drive_motors[i]->set( Motor::Control_Mode::VELOCITY, speed_target_ramped, 0 );
+		double speed_target = sdo[i].second.linear.x() / (0.1016 * M_PI) * 60.0;
+		drive_motors[i]->set( Motor::Control_Mode::VELOCITY, speed_target, 0 );
 		float delta = smallest_traversal(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI), ck::math::normalize_to_2_pi(sdo[i].first.orientation.yaw()));
-		msg.data.push_back(delta);
 		float target = (motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI) + delta;
 		steering_motors[i]->set( Motor::Control_Mode::POSITION, target / (2.0 * M_PI), 0 );
 
