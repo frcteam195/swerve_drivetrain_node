@@ -15,9 +15,6 @@
 
 
 tf2_ros::TransformBroadcaster * tfBroadcaster;
-tf2_ros::TransformListener *tfListener;
-tf2_ros::Buffer tfBuffer;
-extern ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics drivetrain_diagnostics;
 static geometry::Transform robot_transform;
 
 void robot_odometry_subscriber(const nav_msgs::Odometry &odom)
@@ -39,22 +36,13 @@ void tf2_init()
 	if(!init_complete)
 	{
 		tfBroadcaster = new tf2_ros::TransformBroadcaster();
-		tfListener = new tf2_ros::TransformListener(tfBuffer);
 		init_complete = true;
 		static ros::Subscriber odometry_subscriber = node->subscribe("/odometry/filtered", 10, robot_odometry_subscriber, ros::TransportHints().tcpNoDelay());
 	}
 }
 
-// void update_drivetrain_diagnostics_position()
-// {
-// 	// geometry::Transform robot_transform = get_robot_transform();
-
-
-// }
-
 geometry::Transform get_robot_transform()
 {
-	// drivetrain_diagnostics.actual_heading = ck::math::rad2deg(robot_transform.angular.yaw());
 	return robot_transform;
 }
 
@@ -78,37 +66,21 @@ void publishOdometryData()
 	odometry_data.header.frame_id = "odom";
 	odometry_data.child_frame_id = "base_link";
 
-	odometry_data.pose.pose.orientation.w = 0;
-	odometry_data.pose.pose.orientation.x = 0;
-	odometry_data.pose.pose.orientation.y = 0;
-	odometry_data.pose.pose.orientation.z = 0;
-	odometry_data.pose.pose.position.x = 0;
-	odometry_data.pose.pose.position.y = 0;
-	odometry_data.pose.pose.position.z = 0;
+    geometry::Pose blank_pose;
+	odometry_data.pose.pose = geometry::to_msg(blank_pose);
 
-	odometry_data.twist.twist.linear.x = wheel_vel_sum.x();
-	odometry_data.twist.twist.linear.y = wheel_vel_sum.y();
-	odometry_data.twist.twist.linear.z = 0;
+    geometry::Twist linear_twist;
+    linear_twist.linear.x(wheel_vel_sum.x());
+    linear_twist.linear.y(wheel_vel_sum.y());
+    odometry_data.twist.twist = geometry::to_msg(linear_twist);
 
-	odometry_data.twist.twist.angular.x = 0;
-	odometry_data.twist.twist.angular.y = 0;
-	odometry_data.twist.twist.angular.z = 0;
+    geometry::Covariance pose_covariance;
+	odometry_data.pose.covariance = geometry::to_msg(pose_covariance);
 
-	odometry_data.pose.covariance =
-	   { 0.0001, 0.0, 0.0, 0.0, 0.0, 0.0,
-		 0.0, 0.0001, 0.0, 0.0, 0.0, 0.0,
-		 0.0, 0.0, 0.0001, 0.0, 0.0, 0.0,
-		 0.0, 0.0, 0.0, 0.0001, 0.0, 0.0,
-		 0.0, 0.0, 0.0, 0.0, 0.0001, 0.0,
-		 0.0, 0.0, 0.0, 0.0, 0.0, 0.0001,};
-
-	odometry_data.twist.covariance =
-	   { 0.001, 0.0, 0.0, 0.0, 0.0, 0.0,
-		 0.0, 0.001, 0.0, 0.0, 0.0, 0.0,
-		 0.0, 0.0, 0.001, 0.0, 0.0, 0.0,
-		 0.0, 0.0, 0.0, 0.001, 0.0, 0.0,
-		 0.0, 0.0, 0.0, 0.0, 0.001, 0.0,
-		 0.0, 0.0, 0.0, 0.0, 0.0, 0.001,};
+    geometry::Covariance twist_covariance;
+    twist_covariance.x_var(.1);
+    twist_covariance.y_var(.1);
+	odometry_data.twist.covariance = geometry::to_msg(twist_covariance);
 
 	static ros::Publisher odometry_publisher = node->advertise<nav_msgs::Odometry>("/RobotOdometry", 100);
 	odometry_publisher.publish(odometry_data);
@@ -124,16 +96,15 @@ void publish_motor_links()
 	//Update swerve steering transforms
 	for (int i = 0; i < config_params::robot_num_wheels; i++)
 	{
-		tf2::Quaternion quat_tf;
-		quat_tf.setRPY(0, 0, ck::math::normalize_to_2_pi(ck::math::deg2rad(motor_map[(uint16_t)config_params::steering_motor_ids[i]].sensor_position * 360.0)));
+        geometry::Transform swerve_transform = wheel_transforms[i];
+        swerve_transform.angular.yaw(ck::math::normalize_to_2_pi(ck::math::deg2rad(motor_map[(uint16_t)config_params::steering_motor_ids[i]].sensor_position * 360.0)));
 		geometry_msgs::TransformStamped transform;
 		transform.header.frame_id = "base_link";
 		transform.header.stamp = ros::Time::now() + ros::Duration(5);
 		std::stringstream s;
 		s << "swerve_" << i;
 		transform.child_frame_id = s.str().c_str();
-		transform.transform = geometry::to_msg(wheel_transforms[i]);
-		transform.transform.rotation = tf2::toMsg(quat_tf);
+		transform.transform = geometry::to_msg(swerve_transform);
 
 		tfBroadcaster->sendTransform(transform);
 	}

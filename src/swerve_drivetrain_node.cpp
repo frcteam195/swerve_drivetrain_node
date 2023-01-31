@@ -27,24 +27,14 @@
 
 ros::NodeHandle* node;
 
-// ck::PIDController headingVelocityPID(0.05, 0.0, 0.01, 1.0, 0.2);
-ck::PIDController headingVelocityPID(0.3, 0.0, 0.0, 0.0, 0.2);
-
-float mJoystick1x;
-float mJoystick1y;
-std::mutex mThreadCtrlLock;
-uint32_t mConfigUpdateCounter;
-
 std::vector<geometry::Transform> wheel_transforms;
 
 ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics swerve_drivetrain_diagnostics;
-
 
 std::map<uint16_t, ck_ros_base_msgs_node::Motor_Info> motor_map;
 ck_ros_base_msgs_node::Robot_Status robot_status;
 ck_ros_msgs_node::HMI_Signals hmi_signals;
 ck_ros_msgs_node::Swerve_Drivetrain_Auto_Control auto_control;
-float raw_yaw_dps = 0;
 
 static ros::Publisher * diagnostics_publisher;
 ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics drivetrain_diagnostics;
@@ -104,10 +94,10 @@ void process_swerve_logic()
 	{
 		case ck_ros_base_msgs_node::Robot_Status::AUTONOMOUS:
 		{
+            // MGT TODO - delete this once a real autonomous node exists
 			if (run_once)
 			{
 				run_once = false;
-				// get_start_traj_client();
 				trajectory_generator_node::StartTrajectory srvCall;
 				srvCall.request.trajectory_name = "sample_auto";
 				// srvCall.request.trajectory_name = "todd_circle";
@@ -179,11 +169,6 @@ void auto_control_callback(const ck_ros_msgs_node::Swerve_Drivetrain_Auto_Contro
 	auto_control = auto_control_;
 }
 
-void raw_dps_callback(const std_msgs::Float32& raw_dps)
-{
-    raw_yaw_dps = raw_dps.data;
-}
-
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "drivetrain");
@@ -197,15 +182,12 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	// headingController.initTuner(node, "HeadingPID");
-
 	init_swerve_motors();
 
 	static ros::Subscriber motor_status_subscriber = node->subscribe("/MotorStatus", 1, motor_status_callback, ros::TransportHints().tcpNoDelay());
 	static ros::Subscriber robot_status_subscriber = node->subscribe("/RobotStatus", 1, robot_status_callback, ros::TransportHints().tcpNoDelay());
 	static ros::Subscriber hmi_signals_subscriber = node->subscribe("/HMISignals", 1, hmi_signals_callback, ros::TransportHints().tcpNoDelay());
 	static ros::Subscriber auto_signals_subscriber = node->subscribe("/SwerveAutoControl", 1, auto_control_callback, ros::TransportHints().tcpNoDelay());
-	static ros::Subscriber raw_dps_signal_subscriber = node->subscribe("/rawdpsgyro", 1, raw_dps_callback, ros::TransportHints().tcpNoDelay());
 	ros::Publisher diagnostics_publisher_ = node->advertise<ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics>("/SwerveDiagnostics", 10);
 	diagnostics_publisher = &diagnostics_publisher_;
 	ros::spin();
