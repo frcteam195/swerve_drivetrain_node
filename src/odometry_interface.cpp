@@ -28,6 +28,10 @@ void robot_odometry_subscriber(const nav_msgs::Odometry &odom)
 
 	robot_transform.angular = geometry::to_rotation(odom.pose.pose.orientation);
 	robot_transform.linear = geometry::to_translation(odom.pose.pose.position);
+
+    float hypotenuse = std::sqrt(drivetrain_twist.linear.x() * drivetrain_twist.linear.x() + drivetrain_twist.linear.y() * drivetrain_twist.linear.y());
+    float angle = ck::math::rad2deg(std::asin(drivetrain_twist.linear.y() / hypotenuse));
+    drivetrain_diagnostics.actual_track = angle;
 }
 
 void tf2_init()

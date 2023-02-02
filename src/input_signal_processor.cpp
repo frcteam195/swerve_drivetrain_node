@@ -31,7 +31,7 @@ geometry::Twist perform_heading_stabilization(geometry::Twist twist, geometry::P
 	{
 		drivetrain_diagnostics.auto_target_heading = ck::math::rad2deg(heading_pose.orientation.yaw());
 		float heading_error = smallest_traversal(robot_pose.angular.yaw(), heading_pose.orientation.yaw());
-		float heading_response_kP = 1.0;
+		float heading_response_kP = 10.0;
 		float heading_command_offset = heading_error * heading_response_kP;
 		target_angular_velocity += heading_command_offset;
 	}
@@ -119,9 +119,22 @@ geometry::Twist get_twist_from_auto()
 	// Always call both perform field alignment, and heading stabilization even if you know you'll
 	// never use field oriented so that the proper debugging data is set;
 	return_twist = perform_field_alignment(return_twist, false);
+
+    // MGT the reason this doesn't field orient is that it's already field orient
+    // wasn't expecting that when i wrote this to begin with ... needs some cleanup
+    // but for now lets override these debug variables here
+    drivetrain_diagnostics.field_target_x_translation_m_s = return_twist.linear.x();
+    drivetrain_diagnostics.field_target_y_translation_m_s = return_twist.linear.y();
+    // end sketchy
+
+
+
 	return_twist = perform_heading_stabilization(return_twist, heading_pose, true, false);
 
 	drivetrain_diagnostics.field_orient = true;
+    float hypotenuse = std::sqrt(return_twist.linear.x() * return_twist.linear.x() + return_twist.linear.y() * return_twist.linear.y());
+    float angle = ck::math::rad2deg(std::asin(return_twist.linear.y() / hypotenuse));
+    drivetrain_diagnostics.target_track = angle;
 
     return return_twist;
 }
@@ -148,6 +161,10 @@ geometry::Twist get_twist_from_HMI()
 	geometry::Pose heading_pose;
 	return_twist = perform_heading_stabilization(return_twist, heading_pose, false);
 	return_twist = perform_field_alignment(return_twist, field_orient);
+
+    float hypotenuse = std::sqrt(return_twist.linear.x() * return_twist.linear.x() + return_twist.linear.y() * return_twist.linear.y());
+    float angle = ck::math::rad2deg(std::asin(return_twist.linear.y() / hypotenuse));
+    drivetrain_diagnostics.target_track = angle;
 
 	return return_twist;
 }
