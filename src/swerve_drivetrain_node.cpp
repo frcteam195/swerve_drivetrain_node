@@ -13,7 +13,7 @@
 #include <ck_utilities/CKMath.hpp>
 #include <ck_ros_msgs_node/Swerve_Drivetrain_Diagnostics.h>
 #include <ck_ros_msgs_node/HMI_Signals.h>
-#include <trajectory_generator_node/StartTrajectory.h>
+#include <swerve_trajectory_node/StartTrajectory.h>
 
 #include "swerve_drivetrain_node.hpp"
 
@@ -46,7 +46,7 @@ static ros::ServiceClient& get_start_traj_client()
 {
 	if (node && !start_traj_client)
 	{
-		start_traj_client = node->serviceClient<trajectory_generator_node::StartTrajectory>("start_trajectory");
+		start_traj_client = node->serviceClient<swerve_trajectory_node::StartTrajectory>("start_trajectory");
 	}
 	return start_traj_client;
 };
@@ -98,7 +98,7 @@ void process_swerve_logic()
 			if (run_once)
 			{
 				run_once = false;
-				trajectory_generator_node::StartTrajectory srvCall;
+				swerve_trajectory_node::StartTrajectory srvCall;
 				// srvCall.request.trajectory_name = "sample_auto";
 				srvCall.request.trajectory_name = "todd_circle";
 				// srvCall.request.trajectory_name = "straight_line";
