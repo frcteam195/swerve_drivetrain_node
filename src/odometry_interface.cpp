@@ -12,6 +12,7 @@
 #include <ck_utilities/geometry/geometry_ros_helpers.hpp>
 #include <nav_msgs/Odometry.h>
 #include <ck_ros_msgs_node/Swerve_Drivetrain_Diagnostics.h>
+#include <ck_utilities/Logger.hpp>
 
 
 tf2_ros::TransformBroadcaster * tfBroadcaster;
@@ -20,13 +21,16 @@ static geometry::Transform robot_transform;
 void robot_odometry_subscriber(const nav_msgs::Odometry &odom)
 {
 	geometry::Twist drivetrain_twist = geometry::to_twist(odom.twist.twist);
-	drivetrain_diagnostics.field_actual_x_translation_m_s = drivetrain_twist.linear.x();
-	drivetrain_diagnostics.field_actual_y_translation_m_s = drivetrain_twist.linear.y();
-	drivetrain_diagnostics.actual_angular_speed_deg_s = ck::math::rad2deg(drivetrain_twist.angular.yaw());
-	drivetrain_diagnostics.actual_total_speed_m_s = drivetrain_twist.linear.norm();
-
 	robot_transform.angular = geometry::to_rotation(odom.pose.pose.orientation);
 	robot_transform.linear = geometry::to_translation(odom.pose.pose.position);
+
+    geometry::Rotation robot_to_field_rot = robot_transform.angular;
+    robot_to_field_rot.yaw(robot_to_field_rot.yaw());
+    geometry::Twist field_twist = drivetrain_twist.rotate(robot_to_field_rot);
+	drivetrain_diagnostics.field_actual_x_translation_m_s = field_twist.linear.x();
+	drivetrain_diagnostics.field_actual_y_translation_m_s = field_twist.linear.y();
+	drivetrain_diagnostics.actual_angular_speed_deg_s = ck::math::rad2deg(drivetrain_twist.angular.yaw());
+	drivetrain_diagnostics.actual_total_speed_m_s = drivetrain_twist.linear.norm();
 
     float hypotenuse = std::sqrt(drivetrain_twist.linear.x() * drivetrain_twist.linear.x() + drivetrain_twist.linear.y() * drivetrain_twist.linear.y());
     float angle = ck::math::rad2deg(std::asin(drivetrain_twist.linear.y() / hypotenuse));
