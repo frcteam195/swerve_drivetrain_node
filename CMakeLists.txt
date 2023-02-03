@@ -10,7 +10,7 @@ project(${PROJECT_NAME})
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp std_msgs message_generation ck_ros_msgs_node ck_ros_base_msgs_node ck_utilities_node hmi_agent_node frc_robot_utilities_node dynamic_reconfigure)
+find_package(catkin REQUIRED COMPONENTS roscpp std_msgs message_generation ck_ros_msgs_node ck_ros_base_msgs_node ck_utilities_node hmi_agent_node frc_robot_utilities_node dynamic_reconfigure swerve_trajectory_node)
 
 # add_message_files(
 #   FILES
@@ -43,7 +43,7 @@ catkin_package(
   hmi_agent_node
   dynamic_reconfigure
   frc_robot_utilities_node
-  trajectory_generator_node
+  swerve_trajectory_node
 )
 
 ###########
