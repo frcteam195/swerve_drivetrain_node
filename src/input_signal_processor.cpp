@@ -136,12 +136,15 @@ geometry::Twist get_twist_from_auto()
 
 
 
-	return_twist = perform_heading_stabilization(return_twist, heading_pose, true, false);
+	return_twist = perform_heading_stabilization(return_twist, heading_pose, true);
 
 	drivetrain_diagnostics.field_orient = true;
     float hypotenuse = std::sqrt(return_twist.linear.x() * return_twist.linear.x() + return_twist.linear.y() * return_twist.linear.y());
     float angle = ck::math::rad2deg(std::asin(return_twist.linear.y() / hypotenuse));
     drivetrain_diagnostics.target_track = angle;
+
+    if(return_twist.linear.norm() > config_params::robot_max_fwd_vel)
+        return_twist.linear *= config_params::robot_max_fwd_vel / return_twist.linear.norm();
 
     return return_twist;
 }
