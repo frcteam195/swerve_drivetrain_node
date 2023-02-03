@@ -19,7 +19,6 @@ static geometry::Transform robot_transform;
 
 void robot_odometry_subscriber(const nav_msgs::Odometry &odom)
 {
-
 	geometry::Twist drivetrain_twist = geometry::to_twist(odom.twist.twist);
 	drivetrain_diagnostics.field_actual_x_translation_m_s = drivetrain_twist.linear.x();
 	drivetrain_diagnostics.field_actual_y_translation_m_s = drivetrain_twist.linear.y();
@@ -32,6 +31,16 @@ void robot_odometry_subscriber(const nav_msgs::Odometry &odom)
     float hypotenuse = std::sqrt(drivetrain_twist.linear.x() * drivetrain_twist.linear.x() + drivetrain_twist.linear.y() * drivetrain_twist.linear.y());
     float angle = ck::math::rad2deg(std::asin(drivetrain_twist.linear.y() / hypotenuse));
     drivetrain_diagnostics.actual_track = angle;
+
+    geometry_msgs::TransformStamped unaligned_base_link;
+    unaligned_base_link.header.frame_id = "map";
+    unaligned_base_link.header.stamp = ros::Time().now();
+    unaligned_base_link.child_frame_id = "unaligned_base_link";
+    unaligned_base_link.transform.translation = geometry::to_msg(robot_transform.linear);
+    geometry::Rotation empty_rotation;
+    unaligned_base_link.transform.rotation = geometry::to_msg_quat(empty_rotation);
+
+    tfBroadcaster->sendTransform(unaligned_base_link);
 }
 
 void tf2_init()
@@ -82,8 +91,8 @@ void publishOdometryData()
 	odometry_data.pose.covariance = geometry::to_msg(pose_covariance);
 
     geometry::Covariance twist_covariance;
-    twist_covariance.x_var(.1);
-    twist_covariance.y_var(.1);
+    twist_covariance.x_var(.0001);
+    twist_covariance.y_var(.0001);
 	odometry_data.twist.covariance = geometry::to_msg(twist_covariance);
 
 	static ros::Publisher odometry_publisher = node->advertise<nav_msgs::Odometry>("/RobotOdometry", 100);

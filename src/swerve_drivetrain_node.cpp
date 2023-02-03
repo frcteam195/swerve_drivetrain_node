@@ -63,11 +63,38 @@ void update_motor_transforms()
 	}
 }
 
+void kill_motors()
+{
+    for (Motor* mF : drive_motors)
+    {
+        mF->set( Motor::Control_Mode::PERCENT_OUTPUT, 0, 0 );
+    }
+    for (Motor* mS : steering_motors)
+    {
+        mS->set( Motor::Control_Mode::PERCENT_OUTPUT, 0, 0 );
+    }
+
+	for (size_t i = 0; i < drive_motors.size(); i++)
+	{
+		drivetrain_diagnostics.modules[i].target_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI));
+		drivetrain_diagnostics.modules[i].actual_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI));
+		drivetrain_diagnostics.modules[i].target_speed_m_s = 0;
+		drivetrain_diagnostics.modules[i].actual_speed_m_s = motor_map[config_params::drive_motor_ids[i]].sensor_velocity * (0.1016 * M_PI) / 60.0;
+	}
+}
 
 void apply_robot_twist(geometry::Twist desired_twist)
 {
-	std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo = calculate_swerve_outputs(desired_twist, wheel_transforms, 0.07);
-	set_swerve_output(sdo);
+    if (std::abs(desired_twist.linear.norm()) > 0.2 ||
+        std::abs(desired_twist.angular.yaw()) > ck::math::deg2rad(20))
+    {
+        std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo = calculate_swerve_outputs(desired_twist, wheel_transforms, 0.07);
+        set_swerve_output(sdo);
+    }
+    else
+    {
+        kill_motors();
+    }
 }
 
 void publish_diagnostic_data()
@@ -114,21 +141,20 @@ void process_swerve_logic()
 			}
 			set_brake_mode(true);
 			desired_robot_twist = get_twist_from_auto();
+	        apply_robot_twist(desired_robot_twist);
 		}
 		break;
 		case ck_ros_base_msgs_node::Robot_Status::TELEOP:
 		{
 			set_brake_mode(hmi_signals.drivetrain_brake);
 			desired_robot_twist = get_twist_from_HMI();
+            apply_robot_twist(desired_robot_twist);
 		}
 		break;
 		default:
 		{
 			run_once = true;
-			for (Motor* mF : drive_motors)
-			{
-				mF->set( Motor::Control_Mode::PERCENT_OUTPUT, 0, 0 );
-			}
+            kill_motors();
 		}
 		break;
 	}
@@ -136,7 +162,6 @@ void process_swerve_logic()
 	geometry::Transform robot_pose = get_robot_transform();
 	drivetrain_diagnostics.actual_heading = ck::math::rad2deg(robot_pose.angular.yaw());
 
-	apply_robot_twist(desired_robot_twist);
 	publishOdometryData();
 	publish_diagnostic_data();
 }
