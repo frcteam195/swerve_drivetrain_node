@@ -127,8 +127,9 @@ void process_swerve_logic()
 				run_once = false;
 				swerve_trajectory_node::StartTrajectory srvCall;
 				// srvCall.request.trajectory_name = "sample_auto";
-				srvCall.request.trajectory_name = "todd_circle";
+				// srvCall.request.trajectory_name = "todd_circle";
 				// srvCall.request.trajectory_name = "straight_line";
+				srvCall.request.trajectory_name = "pickup_piece2";
 
 				if (get_start_traj_client().call(srvCall))
 				{
