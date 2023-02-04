@@ -24,7 +24,7 @@ geometry::Twist perform_heading_stabilization(geometry::Twist twist, geometry::P
 {
 	double target_angular_velocity = twist.angular.yaw();
 
-    if (target_angular_velocity > ck::math::deg2rad(20))
+    if (std::abs(target_angular_velocity) > ck::math::deg2rad(5))
     {
         geometry::Transform robot_pose = get_robot_transform();
         float average_angular_velocity = determine_average_angular_velocity();
