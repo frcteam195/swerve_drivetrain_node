@@ -151,7 +151,7 @@ geometry::Twist get_twist_from_auto()
 
 geometry::Twist get_twist_from_HMI()
 {
-	bool field_orient = hmi_signals.drivetrain_orientation == ck_ros_msgs_node::HMI_Signals::FIELD_ORIENTED;
+	bool field_orient = hmi_signals.drivetrain_orientation == ck_ros_msgs_node::HMI_Signals::FIELD_CENTRIC;
 	drivetrain_diagnostics.field_orient = field_orient;
 
 	double percent_max_fwd_vel = hmi_signals.drivetrain_swerve_percent_fwd_vel;
