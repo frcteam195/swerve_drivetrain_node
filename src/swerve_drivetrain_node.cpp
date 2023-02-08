@@ -129,7 +129,8 @@ void process_swerve_logic()
 				// srvCall.request.trajectory_name = "sample_auto";
 				// srvCall.request.trajectory_name = "todd_circle";
 				// srvCall.request.trajectory_name = "straight_line";
-				srvCall.request.trajectory_name = "pickup_piece2";
+				// srvCall.request.trajectory_name = "pickup_piece2";
+				srvCall.request.trajectory_name = "correct_start";
 
 				if (get_start_traj_client().call(srvCall))
 				{
