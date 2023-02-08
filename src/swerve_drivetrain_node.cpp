@@ -41,15 +41,15 @@ ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics drivetrain_diagnostics;
 
 bool run_once = true;
 
-static ros::ServiceClient start_traj_client;
-static ros::ServiceClient& get_start_traj_client()
-{
-	if (node && !start_traj_client)
-	{
-		start_traj_client = node->serviceClient<swerve_trajectory_node::StartTrajectory>("start_trajectory");
-	}
-	return start_traj_client;
-};
+// static ros::ServiceClient start_traj_client;
+// static ros::ServiceClient& get_start_traj_client()
+// {
+// 	if (node && !start_traj_client)
+// 	{
+// 		start_traj_client = node->serviceClient<swerve_trajectory_node::StartTrajectory>("start_trajectory");
+// 	}
+// 	return start_traj_client;
+// };
 
 
 void update_motor_transforms()
@@ -122,25 +122,25 @@ void process_swerve_logic()
 		case ck_ros_base_msgs_node::Robot_Status::AUTONOMOUS:
 		{
             // MGT TODO - delete this once a real autonomous node exists
-			if (run_once)
-			{
-				run_once = false;
-				swerve_trajectory_node::StartTrajectory srvCall;
-				// srvCall.request.trajectory_name = "sample_auto";
-				// srvCall.request.trajectory_name = "todd_circle";
-				// srvCall.request.trajectory_name = "straight_line";
-				// srvCall.request.trajectory_name = "pickup_piece2";
-				srvCall.request.trajectory_name = "correct_start";
+			// if (run_once)
+			// {
+			// 	run_once = false;
+			// 	swerve_trajectory_node::StartTrajectory srvCall;
+			// 	// srvCall.request.trajectory_name = "sample_auto";
+			// 	// srvCall.request.trajectory_name = "todd_circle";
+			// 	// srvCall.request.trajectory_name = "straight_line";
+			// 	// srvCall.request.trajectory_name = "pickup_piece2";
+			// 	srvCall.request.trajectory_name = "correct_start";
 
-				if (get_start_traj_client().call(srvCall))
-				{
-					ck::log_info << "Successfully called service!" << std::flush;
-				}
-				else
-				{
-					ck::log_error << "Service call failed!" << std::flush;
-				}
-			}
+			// 	if (get_start_traj_client().call(srvCall))
+			// 	{
+			// 		ck::log_info << "Successfully called service!" << std::flush;
+			// 	}
+			// 	else
+			// 	{
+			// 		ck::log_error << "Service call failed!" << std::flush;
+			// 	}
+			// }
 			set_brake_mode(true);
 			desired_robot_twist = get_twist_from_auto();
 	        apply_robot_twist(desired_robot_twist);
