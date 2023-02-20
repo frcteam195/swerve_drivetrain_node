@@ -24,7 +24,6 @@
 #include "input_signal_processor.hpp"
 #include <std_msgs/Float32.h>
 
-
 ros::NodeHandle* node;
 
 std::vector<geometry::Transform> wheel_transforms;

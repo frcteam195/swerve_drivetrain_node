@@ -158,6 +158,11 @@ geometry::Twist get_twist_from_HMI()
 	double direction = hmi_signals.drivetrain_swerve_direction;
 	double percent_max_ang_vel = hmi_signals.drivetrain_swerve_percent_angular_rot;
 
+    if (robot_status.alliance == robot_status.BLUE && field_orient)
+    {
+        percent_max_fwd_vel *= -1;
+    }
+
 	float target_angular_velocity = (percent_max_ang_vel * config_params::robot_max_ang_vel);
 	drivetrain_diagnostics.target_angular_speed_deg_s = ck::math::rad2deg(target_angular_velocity);
 
