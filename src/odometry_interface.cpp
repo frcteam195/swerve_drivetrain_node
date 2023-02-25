@@ -35,16 +35,6 @@ void robot_odometry_subscriber(const nav_msgs::Odometry &odom)
     float hypotenuse = std::sqrt(drivetrain_twist.linear.x() * drivetrain_twist.linear.x() + drivetrain_twist.linear.y() * drivetrain_twist.linear.y());
     float angle = ck::math::rad2deg(std::asin(drivetrain_twist.linear.y() / hypotenuse));
     drivetrain_diagnostics.actual_track = angle;
-
-    geometry_msgs::TransformStamped unaligned_base_link;
-    unaligned_base_link.header.frame_id = "map";
-    unaligned_base_link.header.stamp = ros::Time().now();
-    unaligned_base_link.child_frame_id = "unaligned_base_link";
-    unaligned_base_link.transform.translation = geometry::to_msg(robot_transform.linear);
-    geometry::Rotation empty_rotation;
-    unaligned_base_link.transform.rotation = geometry::to_msg_quat(empty_rotation);
-
-    tfBroadcaster->sendTransform(unaligned_base_link);
 }
 
 void tf2_init()
