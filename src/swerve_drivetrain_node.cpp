@@ -105,14 +105,19 @@ void process_swerve_logic()
 {
 	static int8_t frame_counter = 0;
 	frame_counter ++;
-	frame_counter = frame_counter % 20;
+	frame_counter = frame_counter % 100;
 
 	update_motor_transforms();
 
-	if(frame_counter == 0)
+	if(frame_counter % 20 == 0)
 	{
 		publish_motor_links();
 	}
+
+    if (frame_counter % 5 == 0)
+    {
+        publish_robot_base_tf();
+    }
 
 	geometry::Twist desired_robot_twist;
 

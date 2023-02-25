@@ -96,6 +96,15 @@ void publishOdometryData()
 	drivetrain_diagnostics.body_actual_y_translation_m_s = wheel_vel_sum.y();
 }
 
+void publish_robot_base_tf()
+{
+    geometry_msgs::TransformStamped stamped_base_link;
+    stamped_base_link.header.frame_id = "odom";
+    stamped_base_link.header.stamp = ros::Time::now();
+    stamped_base_link.child_frame_id = "base_link";
+    stamped_base_link.transform = geometry::to_msg(robot_transform);
+    tfBroadcaster->sendTransform(stamped_base_link);
+}
 
 void publish_motor_links()
 {
@@ -107,7 +116,7 @@ void publish_motor_links()
         swerve_transform.angular.yaw(ck::math::normalize_to_2_pi(ck::math::deg2rad(motor_map[(uint16_t)config_params::steering_motor_ids[i]].sensor_position * 360.0)));
 		geometry_msgs::TransformStamped transform;
 		transform.header.frame_id = "base_link";
-		transform.header.stamp = ros::Time::now() + ros::Duration(5);
+		transform.header.stamp = ros::Time::now();
 		std::stringstream s;
 		s << "swerve_" << i;
 		transform.child_frame_id = s.str().c_str();
