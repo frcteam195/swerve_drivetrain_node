@@ -13,6 +13,7 @@
 #include <nav_msgs/Odometry.h>
 #include <ck_ros_msgs_node/Swerve_Drivetrain_Diagnostics.h>
 #include <ck_utilities/Logger.hpp>
+#include <deque>
 
 
 tf2_ros::TransformBroadcaster * tfBroadcaster;
@@ -39,7 +40,22 @@ void robot_odometry_subscriber(const nav_msgs::Odometry &odom)
 void raw_gyro_subscriber(const nav_msgs::Odometry &odom)
 {
 	geometry::Twist drivetrain_twist = geometry::to_twist(odom.twist.twist);
-	drivetrain_diagnostics.actual_angular_speed_deg_s = ck::math::rad2deg(drivetrain_twist.angular.yaw());
+    static std::deque<float> angular_rates(3);
+    while (angular_rates.size() < 3)
+    {
+        angular_rates.push_back(0);
+    }
+    angular_rates.pop_front();
+    angular_rates.push_back(drivetrain_twist.angular.yaw());
+
+    float value;
+    for ( auto &i : angular_rates)
+    {
+        value += i;
+    }
+    value /= angular_rates.size();
+
+	drivetrain_diagnostics.actual_angular_speed_deg_s = value;
 }
 
 void tf2_init()
