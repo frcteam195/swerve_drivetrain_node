@@ -91,7 +91,7 @@ void publishOdometryData()
 	wheel_vel_sum /= config_params::robot_num_wheels;
 
 	nav_msgs::Odometry odometry_data;
-    odometry_data.header.stamp = ros::Time::now();
+    odometry_data.header.stamp = ros::Time(0);
 	odometry_data.header.frame_id = "odom";
 	odometry_data.child_frame_id = "base_link";
 
@@ -122,7 +122,7 @@ void publish_robot_base_tf()
 {
     geometry_msgs::TransformStamped stamped_base_link;
     stamped_base_link.header.frame_id = "odom";
-    stamped_base_link.header.stamp = ros::Time::now();
+    stamped_base_link.header.stamp = ros::Time(0);
     stamped_base_link.child_frame_id = "base_link";
     stamped_base_link.transform = geometry::to_msg(robot_transform);
     tfBroadcaster->sendTransform(stamped_base_link);
