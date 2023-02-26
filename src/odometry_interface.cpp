@@ -55,7 +55,7 @@ void raw_gyro_subscriber(const nav_msgs::Odometry &odom)
     }
     value /= angular_rates.size();
 
-	drivetrain_diagnostics.actual_angular_speed_deg_s = value;
+	drivetrain_diagnostics.actual_angular_speed_deg_s = ck::math::rad2deg(value);
 }
 
 void tf2_init()
