@@ -33,7 +33,7 @@ geometry::Twist perform_heading_stabilization(geometry::Twist twist, geometry::P
         {
             drivetrain_diagnostics.auto_target_heading = ck::math::rad2deg(heading_pose.orientation.yaw());
             float heading_error = smallest_traversal(robot_pose.angular.yaw(), heading_pose.orientation.yaw());
-            float heading_response_kP = 15.0;
+            float heading_response_kP = 13.0;
             float heading_command_offset = heading_error * heading_response_kP;
             target_angular_velocity += heading_command_offset;
         }
