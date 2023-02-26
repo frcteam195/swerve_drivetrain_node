@@ -29,12 +29,17 @@ void robot_odometry_subscriber(const nav_msgs::Odometry &odom)
     geometry::Twist field_twist = drivetrain_twist.rotate(robot_to_field_rot);
 	drivetrain_diagnostics.field_actual_x_translation_m_s = field_twist.linear.x();
 	drivetrain_diagnostics.field_actual_y_translation_m_s = field_twist.linear.y();
-	drivetrain_diagnostics.actual_angular_speed_deg_s = ck::math::rad2deg(drivetrain_twist.angular.yaw());
 	drivetrain_diagnostics.actual_total_speed_m_s = drivetrain_twist.linear.norm();
 
     float hypotenuse = std::sqrt(drivetrain_twist.linear.x() * drivetrain_twist.linear.x() + drivetrain_twist.linear.y() * drivetrain_twist.linear.y());
     float angle = ck::math::rad2deg(std::asin(drivetrain_twist.linear.y() / hypotenuse));
     drivetrain_diagnostics.actual_track = angle;
+}
+
+void raw_gyro_subscriber(const nav_msgs::Odometry &odom)
+{
+	geometry::Twist drivetrain_twist = geometry::to_twist(odom.twist.twist);
+	drivetrain_diagnostics.actual_angular_speed_deg_s = ck::math::rad2deg(drivetrain_twist.angular.yaw());
 }
 
 void tf2_init()
@@ -45,6 +50,7 @@ void tf2_init()
 		tfBroadcaster = new tf2_ros::TransformBroadcaster();
 		init_complete = true;
 		static ros::Subscriber odometry_subscriber = node->subscribe("/odometry/filtered", 10, robot_odometry_subscriber, ros::TransportHints().tcpNoDelay());
+		static ros::Subscriber raw_gyro_sub = node->subscribe("/RobotIMU", 10, raw_gyro_subscriber, ros::TransportHints().tcpNoDelay());
 	}
 }
 
