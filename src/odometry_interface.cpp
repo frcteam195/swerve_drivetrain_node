@@ -41,7 +41,7 @@ void raw_gyro_subscriber(const nav_msgs::Odometry &odom)
 {
 	geometry::Twist drivetrain_twist = geometry::to_twist(odom.twist.twist);
     static std::deque<float> angular_rates(3);
-    while (angular_rates.size() < 3)
+    while (angular_rates.size() < 5)
     {
         angular_rates.push_back(0);
     }
