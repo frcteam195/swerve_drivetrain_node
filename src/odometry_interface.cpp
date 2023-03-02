@@ -120,6 +120,7 @@ void publishOdometryData()
 
 void publish_robot_base_tf()
 {
+	tf2_init();
     geometry_msgs::TransformStamped stamped_base_link;
     stamped_base_link.header.frame_id = "odom";
     stamped_base_link.header.stamp = ros::Time::now();
