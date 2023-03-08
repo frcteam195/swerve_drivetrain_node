@@ -40,17 +40,6 @@ ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics drivetrain_diagnostics;
 
 bool run_once = true;
 
-// static ros::ServiceClient start_traj_client;
-// static ros::ServiceClient& get_start_traj_client()
-// {
-// 	if (node && !start_traj_client)
-// 	{
-// 		start_traj_client = node->serviceClient<swerve_trajectory_node::StartTrajectory>("start_trajectory");
-// 	}
-// 	return start_traj_client;
-// };
-
-
 void update_motor_transforms()
 {
 	//Update swerve steering transforms
@@ -101,6 +90,23 @@ void publish_diagnostic_data()
 	diagnostics_publisher->publish(drivetrain_diagnostics);
 }
 
+void apply_x_mode()
+{
+    std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo;
+    float heading = 45;
+    for (int i = 0; i < 3; i++)
+    {
+        geometry::Twist empty_twist;
+        geometry::Pose pose;
+        pose.orientation.yaw(ck::math::deg2rad(heading));
+        std::pair<geometry::Pose, geometry::Twist> module(pose, empty_twist);
+        sdo.push_back(module);
+        heading -= 90;
+    }
+    set_swerve_output(sdo);
+    return;
+}
+
 void process_swerve_logic()
 {
 	static int8_t frame_counter = 0;
@@ -125,29 +131,16 @@ void process_swerve_logic()
 	{
 		case ck_ros_base_msgs_node::Robot_Status::AUTONOMOUS:
 		{
-            // MGT TODO - delete this once a real autonomous node exists
-			// if (run_once)
-			// {
-			// 	run_once = false;
-			// 	swerve_trajectory_node::StartTrajectory srvCall;
-			// 	// srvCall.request.trajectory_name = "sample_auto";
-			// 	// srvCall.request.trajectory_name = "todd_circle";
-			// 	// srvCall.request.trajectory_name = "straight_line";
-			// 	// srvCall.request.trajectory_name = "pickup_piece2";
-			// 	srvCall.request.trajectory_name = "correct_start";
-
-			// 	if (get_start_traj_client().call(srvCall))
-			// 	{
-			// 		ck::log_info << "Successfully called service!" << std::flush;
-			// 	}
-			// 	else
-			// 	{
-			// 		ck::log_error << "Service call failed!" << std::flush;
-			// 	}
-			// }
 			set_brake_mode(true);
 			desired_robot_twist = get_twist_from_auto();
-	        apply_robot_twist(desired_robot_twist);
+            if (auto_control.x_mode)
+            {
+                apply_x_mode();
+            }
+            else
+            {
+	            apply_robot_twist(desired_robot_twist);
+            }
 		}
 		break;
 		case ck_ros_base_msgs_node::Robot_Status::TELEOP:
