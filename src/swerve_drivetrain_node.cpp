@@ -103,7 +103,7 @@ void apply_x_mode()
 {
     std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo;
     float heading = 45;
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 4; i++)
     {
         geometry::Twist empty_twist;
         geometry::Pose pose;
