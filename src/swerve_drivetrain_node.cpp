@@ -71,10 +71,19 @@ void kill_motors()
 	}
 }
 
-void apply_robot_twist(geometry::Twist desired_twist)
+void apply_robot_twist(geometry::Twist desired_twist, bool useDeadband=true)
 {
-    if (std::abs(desired_twist.linear.norm()) > 0.2 ||
-        std::abs(desired_twist.angular.yaw()) > ck::math::deg2rad(20))
+	double linear_deadband = 0.2;
+	double angular_deadband = 20;
+
+	if (!useDeadband)
+	{
+		linear_deadband = 0.1;
+		angular_deadband = 10;
+	}
+
+	if (std::abs(desired_twist.linear.norm()) > linear_deadband ||
+        std::abs(desired_twist.angular.yaw()) > ck::math::deg2rad(angular_deadband))
     {
         std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo = calculate_swerve_outputs(desired_twist, wheel_transforms);
         set_swerve_output(sdo);
@@ -139,7 +148,7 @@ void process_swerve_logic()
             }
             else
             {
-	            apply_robot_twist(desired_robot_twist);
+	            apply_robot_twist(desired_robot_twist, false);
             }
 		}
 		break;
