@@ -121,13 +121,13 @@ void apply_x_mode()
             }
             case 3:
             {
-                pose.orientation.yaw(ck::math::deg2rad(135));
+                pose.orientation.yaw(ck::math::deg2rad(315));
                 break;
             }
             default:
             case 4:
             {
-                pose.orientation.yaw(ck::math::deg2rad(225));
+                pose.orientation.yaw(ck::math::deg2rad(45));
                 break;
             }
         }
