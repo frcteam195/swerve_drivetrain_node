@@ -107,7 +107,30 @@ void apply_x_mode()
     {
         geometry::Twist empty_twist;
         geometry::Pose pose;
-        pose.orientation.yaw(ck::math::deg2rad(heading));
+        switch(i)
+        {
+            case 1:
+            {
+                pose.orientation.yaw(ck::math::deg2rad(45));
+                break;
+            }
+            case 2:
+            {
+                pose.orientation.yaw(ck::math::deg2rad(315));
+                break;
+            }
+            case 3:
+            {
+                pose.orientation.yaw(ck::math::deg2rad(135));
+                break;
+            }
+            default:
+            case 4:
+            {
+                pose.orientation.yaw(ck::math::deg2rad(225));
+                break;
+            }
+        }
         std::pair<geometry::Pose, geometry::Twist> module(pose, empty_twist);
         sdo.push_back(module);
         heading -= 90;
