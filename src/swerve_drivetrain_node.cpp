@@ -109,23 +109,23 @@ void apply_x_mode()
         geometry::Pose pose;
         switch(i)
         {
-            case 1:
+            case 0:
             {
                 pose.orientation.yaw(ck::math::deg2rad(45));
                 break;
             }
-            case 2:
+            case 1:
             {
                 pose.orientation.yaw(ck::math::deg2rad(315));
                 break;
             }
-            case 3:
+            case 2:
             {
                 pose.orientation.yaw(ck::math::deg2rad(45));
                 break;
             }
             default:
-            case 4:
+            case 3:
             {
                 pose.orientation.yaw(ck::math::deg2rad(315));
                 break;
