@@ -67,7 +67,7 @@ void kill_motors()
 		drivetrain_diagnostics.modules[i].target_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI));
 		drivetrain_diagnostics.modules[i].actual_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI));
 		drivetrain_diagnostics.modules[i].target_speed_m_s = 0;
-		drivetrain_diagnostics.modules[i].actual_speed_m_s = motor_map[config_params::drive_motor_ids[i]].sensor_velocity * (0.1016 * M_PI) / 60.0;
+		drivetrain_diagnostics.modules[i].actual_speed_m_s = motor_map[config_params::drive_motor_ids[i]].sensor_velocity * (ck::math::inches_to_meters(config_params::wheel_diameter_inches)* M_PI) / 60.0;
 	}
 }
 
@@ -78,7 +78,7 @@ void apply_robot_twist(geometry::Twist desired_twist, bool useDeadband=true)
 
 	if (!useDeadband)
 	{
-		linear_deadband = 0.1;
+		linear_deadband = 0.0;
 		angular_deadband = 10;
 	}
 
