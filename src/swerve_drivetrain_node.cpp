@@ -34,6 +34,7 @@ std::map<uint16_t, ck_ros_base_msgs_node::Motor_Info> motor_map;
 ck_ros_base_msgs_node::Robot_Status robot_status;
 ck_ros_msgs_node::HMI_Signals hmi_signals;
 ck_ros_msgs_node::Swerve_Drivetrain_Auto_Control auto_control;
+static bool auto_control_valid;
 
 static ros::Publisher * diagnostics_publisher;
 ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics drivetrain_diagnostics;
@@ -164,14 +165,21 @@ void process_swerve_logic()
         case ck_ros_base_msgs_node::Robot_Status::AUTONOMOUS:
         {
             set_brake_mode(true);
-            desired_robot_twist = get_twist_from_auto();
-            if (auto_control.x_mode)
+            if (auto_control_valid)
             {
-                apply_x_mode();
+                desired_robot_twist = get_twist_from_auto();
+                if (auto_control.x_mode)
+                {
+                    apply_x_mode();
+                }
+                else
+                {
+                    apply_robot_twist(desired_robot_twist, false);
+                }
             }
             else
             {
-                apply_robot_twist(desired_robot_twist, false);
+                kill_motors();
             }
         }
         break;
@@ -189,8 +197,11 @@ void process_swerve_logic()
             }
         }
         break;
+        case ck_ros_base_msgs_node::Robot_Status::DISABLED:
+        case ck_ros_base_msgs_node::Robot_Status::TEST:
         default:
         {
+            auto_control_valid = false;
             run_once = true;
             kill_motors();
         }
@@ -230,6 +241,7 @@ void hmi_signals_callback(const ck_ros_msgs_node::HMI_Signals& hmi_signals_)
 void auto_control_callback(const ck_ros_msgs_node::Swerve_Drivetrain_Auto_Control& auto_control_)
 {
     auto_control = auto_control_;
+    auto_control_valid = true;
 }
 
 int main(int argc, char **argv)
