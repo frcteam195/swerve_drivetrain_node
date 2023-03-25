@@ -7,27 +7,119 @@
 #include "swerve_drive_helper.hpp"
 #include "config_params.hpp"
 #include <ck_utilities/ValueRamper.hpp>
+#include <ck_utilities/Logger.hpp>
+#include <ck_utilities/CKMath.hpp>
 
 std::vector<Motor*> drive_motors;
 std::vector<Motor*> steering_motors;
 
 extern ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics drivetrain_diagnostics;
 
+double accel_m_s_s_to_rpm_s(double accel)
+{
+    return accel / (ck::math::inches_to_meters(config_params::wheel_diameter_inches) * M_PI) * 60;
+}
+
+double calculate_percent_output_from_speed(double current_speed, double target_speed, double accel)
+{
+    double error = target_speed - current_speed;
+    int8_t error_sign = error / std::abs(error);
+    double error_dampening = 0.3 / (ck::math::inches_to_meters(config_params::wheel_diameter_inches) * M_PI) * 60.0;
+    error = std::abs(error);
+    error /= error_dampening;
+    error = ck::math::limit(error, 1.0);
+
+    accel *= error;
+
+    float kv = 82.3;
+    float ka = 450;
+
+    return (current_speed / kv / 12.0) + ((accel / ka / 12.0) * error_sign);
+    // abject horror ^^
+}
+
+std::vector<float> calculate_accel_fade()
+{
+    double track_to_heading = drivetrain_diagnostics.target_track - drivetrain_diagnostics.actual_heading;
+
+    geometry::Rotation accel_rotation_matrix;
+    accel_rotation_matrix.yaw(track_to_heading);
+
+    bool first = true;
+
+    float min_x = 0;
+    float max_x = 0;
+
+    std::vector<float> results;
+
+    float k_accel_fade = 1.0; // m/s
+
+    for (size_t i = 0; i < drive_motors.size(); i ++)
+    {
+        geometry::Transform accel_adjusted_transform = wheel_transforms[i].rotate(accel_rotation_matrix);
+
+        if (first)
+        {
+            min_x = accel_adjusted_transform.linear.x();
+            max_x = accel_adjusted_transform.linear.x();
+            first = false;
+        }
+
+        if (accel_adjusted_transform.linear.x() < min_x)
+        {
+            min_x = accel_adjusted_transform.linear.x();
+        }
+
+        if (accel_adjusted_transform.linear.x() > max_x)
+        {
+            max_x = accel_adjusted_transform.linear.x();
+        }
+    }
+
+    for (size_t i = 0; i < drive_motors.size(); i ++)
+    {
+        geometry::Transform accel_adjusted_transform = wheel_transforms[i].rotate(accel_rotation_matrix);
+
+        float fade = (accel_adjusted_transform.linear.x() - min_x) / (max_x - min_x);
+        fade = 1 - fade;
+
+        fade *= k_accel_fade;
+
+        results.push_back(fade);
+    }
+
+    return results;
+}
+
 void set_swerve_output(std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo)
 {
+    double accel = config_params::robot_max_fwd_accel;
+
+    std::vector<float> fades = calculate_accel_fade();
+
 	for (size_t i = 0; i < drive_motors.size(); i++)
 	{
-		double speed_target = sdo[i].second.linear.x() / (ck::math::inches_to_meters(config_params::wheel_diameter_inches) * M_PI) * 60.0;
-		drive_motors[i]->set( Motor::Control_Mode::VELOCITY, speed_target, 0 );
-		float delta = smallest_traversal(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI), ck::math::normalize_to_2_pi(sdo[i].first.orientation.yaw()));
-		float target = (motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI) + delta;
-		steering_motors[i]->set( Motor::Control_Mode::POSITION, target / (2.0 * M_PI), 0 );
+        double local_accel = accel - fades[i];
+        local_accel = std::max(0.0, local_accel);
+        double accel_rpm_s = accel_m_s_s_to_rpm_s(local_accel);
 
-		drivetrain_diagnostics.modules[i].target_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(sdo[i].first.orientation.yaw()));
-		drivetrain_diagnostics.modules[i].actual_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI));
-		drivetrain_diagnostics.modules[i].target_speed_m_s = sdo[i].second.linear.x();
-		drivetrain_diagnostics.modules[i].actual_speed_m_s = motor_map[config_params::drive_motor_ids[i]].sensor_velocity * (ck::math::inches_to_meters(config_params::wheel_diameter_inches) * M_PI) / 60.0;
+        double speed_target = sdo[i].second.linear.x() / (ck::math::inches_to_meters(config_params::wheel_diameter_inches) * M_PI) * 60.0;
+        // drive_motors[i]->set( Motor::Control_Mode::VELOCITY, speed_target, 0 );
+        double percent_output = calculate_percent_output_from_speed(motor_map[config_params::drive_motor_ids[i]].sensor_velocity, speed_target, accel_rpm_s);
 
+        drivetrain_diagnostics.modules[i].commanded_percent_out = percent_output;
+        drivetrain_diagnostics.modules[i].target_accel = local_accel;
+
+        drive_motors[i]->set( Motor::Control_Mode::PERCENT_OUTPUT, percent_output, 0 );
+
+        float delta = smallest_traversal(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI), ck::math::normalize_to_2_pi(sdo[i].first.orientation.yaw()));
+        float target = (motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI) + delta;
+        steering_motors[i]->set( Motor::Control_Mode::POSITION, target / (2.0 * M_PI), 0 );
+
+        drivetrain_diagnostics.modules[i].target_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(sdo[i].first.orientation.yaw()));
+        drivetrain_diagnostics.modules[i].actual_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI));
+        drivetrain_diagnostics.modules[i].target_speed_m_s = sdo[i].second.linear.x();
+        drivetrain_diagnostics.modules[i].actual_speed_m_s = motor_map[config_params::drive_motor_ids[i]].sensor_velocity * (ck::math::inches_to_meters(config_params::wheel_diameter_inches) * M_PI) / 60.0;
 	}
 }
 

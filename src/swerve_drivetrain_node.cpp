@@ -236,6 +236,7 @@ void robot_status_callback(const ck_ros_base_msgs_node::Robot_Status& robot_stat
 void hmi_signals_callback(const ck_ros_msgs_node::HMI_Signals& hmi_signals_)
 {
     hmi_signals = hmi_signals_;
+    hmi_signals.drivetrain_brake = 0;
 }
 
 void auto_control_callback(const ck_ros_msgs_node::Swerve_Drivetrain_Auto_Control& auto_control_)
