@@ -6,7 +6,7 @@
 #include "swerve_drivetrain_node.hpp"
 #include "swerve_drive_helper.hpp"
 #include "config_params.hpp"
-#include <ck_utilities/ValueRamper.hpp>
+#include <ck_utilities/AccelRamper.hpp>
 #include <ck_utilities/Logger.hpp>
 #include <ck_utilities/CKMath.hpp>
 
@@ -20,8 +20,20 @@ double accel_m_s_s_to_rpm_s(double accel)
     return accel / (ck::math::inches_to_meters(config_params::wheel_diameter_inches) * M_PI) * 60;
 }
 
-double calculate_percent_output_from_speed(double current_speed, double target_speed, double accel)
+double calculate_percent_output_from_speed(double current_speed, double target_speed, double accel, double decel, AccelRamper * ramper)
 {
+    float kv = 82.3;
+    float ka = 450;
+    float ks = 0.2 / 4.5;
+
+    float available_voltage = 12.0 - (std::abs(current_speed) / kv);
+    float available_accel = available_voltage * ka;
+    available_accel = available_accel < accel ? available_accel : accel;
+    float available_decel = decel;
+
+    ramper->update_params(available_accel, available_decel, 0, 1);
+    target_speed = ramper->calculateOutput(target_speed);
+
     double error = target_speed - current_speed;
     int8_t error_sign = error / std::abs(error);
     double error_dampening = 0.3 / (ck::math::inches_to_meters(config_params::wheel_diameter_inches) * M_PI) * 60.0;
@@ -31,10 +43,16 @@ double calculate_percent_output_from_speed(double current_speed, double target_s
 
     accel *= error;
 
-    float kv = 82.3;
-    float ka = 450;
+    float output_value = (target_speed / kv / 12.0) + ((accel / ka / 12.0) * error_sign);
 
-    return (current_speed / kv / 12.0) + ((accel / ka / 12.0) * error_sign);
+    if (output_value < ks && target_speed > 0)
+    {
+        output_value = ks;
+    }
+
+    ck::log_error << "AV: " << available_voltage << " AA: " << available_accel << " CS: " << current_speed << " TS: " << target_speed << " OV: " << output_value << " IA: " << accel << std::flush;
+
+    return output_value;
     // abject horror ^^
 }
 
@@ -78,14 +96,21 @@ std::vector<float> calculate_accel_fade()
 
     for (size_t i = 0; i < drive_motors.size(); i ++)
     {
-        geometry::Transform accel_adjusted_transform = wheel_transforms[i].rotate(accel_rotation_matrix);
+        if(max_x - min_x > 0.05)
+        {
+            geometry::Transform accel_adjusted_transform = wheel_transforms[i].rotate(accel_rotation_matrix);
 
-        float fade = (accel_adjusted_transform.linear.x() - min_x) / (max_x - min_x);
-        fade = 1 - fade;
+            float fade = (accel_adjusted_transform.linear.x() - min_x) / (max_x - min_x);
+            fade = 1 - fade;
 
-        fade *= k_accel_fade;
+            fade *= k_accel_fade;
 
-        results.push_back(fade);
+            results.push_back(fade);
+        }
+        else
+        {
+            results.push_back(0);
+        }
     }
 
     return results;
@@ -94,18 +119,49 @@ std::vector<float> calculate_accel_fade()
 void set_swerve_output(std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo)
 {
     double accel = config_params::robot_max_fwd_accel;
+    double decel = config_params::robot_max_fwd_decel;
 
     std::vector<float> fades = calculate_accel_fade();
+    static std::vector<AccelRamper *> value_rampers;
+
+    static ros::Time last_run = ros::Time::now();
+
+    static bool first_pass = true;
+    if (first_pass)
+    {
+        for (size_t i = 0; i < drive_motors.size(); i++)
+        {
+            value_rampers.push_back(new AccelRamper(accel, decel, 0, 1));
+        }
+        first_pass = false;
+    }
+
+    if (ros::Time::now().toSec() - last_run.toSec() > 0.1)
+    {
+        for (auto &i : value_rampers)
+        {
+            i->reset();
+        }
+    }
+
+    last_run = ros::Time::now();
 
 	for (size_t i = 0; i < drive_motors.size(); i++)
 	{
         double local_accel = accel - fades[i];
+        ck::log_error << "Fade: " << fades[i] << std::flush;
         local_accel = std::max(0.0, local_accel);
         double accel_rpm_s = accel_m_s_s_to_rpm_s(local_accel);
 
+        double local_decel = decel;
+        double decel_rpm_s = accel_m_s_s_to_rpm_s(local_decel);
+
         double speed_target = sdo[i].second.linear.x() / (ck::math::inches_to_meters(config_params::wheel_diameter_inches) * M_PI) * 60.0;
         // drive_motors[i]->set( Motor::Control_Mode::VELOCITY, speed_target, 0 );
-        double percent_output = calculate_percent_output_from_speed(motor_map[config_params::drive_motor_ids[i]].sensor_velocity, speed_target, accel_rpm_s);
+        double percent_output = calculate_percent_output_from_speed(motor_map[config_params::drive_motor_ids[i]].sensor_velocity, speed_target, accel_rpm_s, decel_rpm_s, value_rampers[i]);
+
+        drivetrain_diagnostics.modules[i].target_speed_rpm = speed_target;
+        drivetrain_diagnostics.modules[i].ramped_target_speed_rpm = value_rampers[i]->get_value();
 
         drivetrain_diagnostics.modules[i].commanded_percent_out = percent_output;
         drivetrain_diagnostics.modules[i].target_accel = local_accel;

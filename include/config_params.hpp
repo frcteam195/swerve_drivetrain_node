@@ -56,6 +56,7 @@ namespace config_params
     extern double steering_supply_current_limit_threshold_exceeded_time;
 
     extern double robot_max_fwd_accel;
+    extern double robot_max_fwd_decel;
 
     bool init_params(ros::NodeHandle &n);
 }
