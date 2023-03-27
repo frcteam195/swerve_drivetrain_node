@@ -35,19 +35,23 @@ double calculate_percent_output_from_speed(double current_speed, double target_s
     target_speed = ramper->calculateOutput(target_speed);
 
     double error = target_speed - current_speed;
-    int8_t error_sign = error / std::abs(error);
-    double error_dampening = 1.0 / (ck::math::inches_to_meters(config_params::wheel_diameter_inches) * M_PI) * 60.0;
-    error = std::abs(error);
-    error /= error_dampening;
-    error = ck::math::limit(error, 1.0);
 
-    available_accel *= error;
+    float output_value = 0;
 
-    float output_value = (target_speed / kv / 12.0) + ((available_accel / ka / 12.0) * error_sign);
-
-    if (output_value < ks && target_speed > 0)
+    if (error >= 0.01)
     {
-        output_value = ks;
+        int8_t error_sign = error / std::abs(error);
+        double error_dampening = 1.0 / (ck::math::inches_to_meters(config_params::wheel_diameter_inches) * M_PI) * 60.0;
+        error = std::abs(error);
+        error /= error_dampening;
+        error = ck::math::limit(error, 1.0);
+        available_accel *= error;
+        output_value = (target_speed / kv / 12.0) + ((available_accel / ka / 12.0) * error_sign);
+
+        if (output_value < ks)
+        {
+            output_value = ks;
+        }
     }
 
     return output_value;
