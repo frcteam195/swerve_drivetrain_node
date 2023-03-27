@@ -24,7 +24,7 @@ double calculate_percent_output_from_speed(double current_speed, double target_s
 {
     float kv = 82.3;
     float ka = 450;
-    float ks = 0.2 / 4.5;
+    float ks = 0.4 / 4.5;
 
     float available_voltage = 12.0 - (std::abs(current_speed) / kv);
     float available_accel = available_voltage * ka;
@@ -36,14 +36,14 @@ double calculate_percent_output_from_speed(double current_speed, double target_s
 
     double error = target_speed - current_speed;
     int8_t error_sign = error / std::abs(error);
-    double error_dampening = 0.3 / (ck::math::inches_to_meters(config_params::wheel_diameter_inches) * M_PI) * 60.0;
+    double error_dampening = 1.0 / (ck::math::inches_to_meters(config_params::wheel_diameter_inches) * M_PI) * 60.0;
     error = std::abs(error);
     error /= error_dampening;
     error = ck::math::limit(error, 1.0);
 
-    accel *= error;
+    available_accel *= error;
 
-    float output_value = (target_speed / kv / 12.0) + ((accel / ka / 12.0) * error_sign);
+    float output_value = (target_speed / kv / 12.0) + ((available_accel / ka / 12.0) * error_sign);
 
     if (output_value < ks && target_speed > 0)
     {
@@ -70,7 +70,7 @@ std::vector<float> calculate_accel_fade()
 
     std::vector<float> results;
 
-    float k_accel_fade = 1.0; // m/s
+    float k_accel_fade = 0.01; // m/s
 
     for (size_t i = 0; i < drive_motors.size(); i ++)
     {
