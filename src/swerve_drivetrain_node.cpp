@@ -52,26 +52,6 @@ void update_motor_transforms()
     }
 }
 
-void kill_motors()
-{
-    for (Motor* mF : drive_motors)
-    {
-        mF->set( Motor::Control_Mode::PERCENT_OUTPUT, 0, 0 );
-    }
-    for (Motor* mS : steering_motors)
-    {
-        mS->set( Motor::Control_Mode::PERCENT_OUTPUT, 0, 0 );
-    }
-
-    for (size_t i = 0; i < drive_motors.size(); i++)
-    {
-        drivetrain_diagnostics.modules[i].target_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI));
-        drivetrain_diagnostics.modules[i].actual_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI));
-        drivetrain_diagnostics.modules[i].target_speed_m_s = 0;
-        drivetrain_diagnostics.modules[i].actual_speed_m_s = motor_map[config_params::drive_motor_ids[i]].sensor_velocity * (ck::math::inches_to_meters(config_params::wheel_diameter_inches)* M_PI) / 60.0;
-    }
-}
-
 void apply_robot_twist(geometry::Twist desired_twist, bool useDeadband=true)
 {
     double linear_deadband = 0.2;
@@ -91,7 +71,7 @@ void apply_robot_twist(geometry::Twist desired_twist, bool useDeadband=true)
     }
     else
     {
-        kill_motors();
+        set_swerve_idle();
     }
 }
 
@@ -179,7 +159,7 @@ void process_swerve_logic()
             }
             else
             {
-                kill_motors();
+                set_swerve_idle();
             }
         }
         break;
@@ -203,7 +183,7 @@ void process_swerve_logic()
         {
             auto_control_valid = false;
             run_once = true;
-            kill_motors();
+            set_swerve_idle();
         }
         break;
     }

@@ -116,17 +116,80 @@ std::vector<float> calculate_accel_fade()
     return results;
 }
 
+
+static std::vector<AccelRamper *> value_rampers;
+static ros::Time last_run = ros::Time::now();
+static bool first_pass = true;
+
+
+    // for (Motor* mF : drive_motors)
+    // {
+    //     mF->set( Motor::Control_Mode::PERCENT_OUTPUT, 0, 0 );
+    // }
+    // for (Motor* mS : steering_motors)
+    // {
+    //     mS->set( Motor::Control_Mode::PERCENT_OUTPUT, 0, 0 );
+    // }
+
+    // for (size_t i = 0; i < drive_motors.size(); i++)
+    // {
+    //     drivetrain_diagnostics.modules[i].target_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI));
+    //     drivetrain_diagnostics.modules[i].actual_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI));
+    //     drivetrain_diagnostics.modules[i].target_speed_m_s = 0;
+    //     drivetrain_diagnostics.modules[i].actual_speed_m_s = motor_map[config_params::drive_motor_ids[i]].sensor_velocity * (ck::math::inches_to_meters(config_params::wheel_diameter_inches)* M_PI) / 60.0;
+    // }
+
+void set_swerve_idle()
+{
+    double accel = config_params::robot_max_fwd_accel;
+    double decel = config_params::robot_max_fwd_decel;
+
+    if (first_pass)
+    {
+        for (size_t i = 0; i < drive_motors.size(); i++)
+        {
+            value_rampers.push_back(new AccelRamper(accel, decel, 0, 1));
+        }
+        first_pass = false;
+    }
+
+    if (ros::Time::now().toSec() - last_run.toSec() > 0.1)
+    {
+        for (auto &i : value_rampers)
+        {
+            i->reset();
+        }
+    }
+    last_run = ros::Time::now();
+
+	for (size_t i = 0; i < drive_motors.size(); i++)
+	{
+        double local_accel = accel;
+        double accel_rpm_s = accel_m_s_s_to_rpm_s(local_accel);
+
+        double local_decel = decel;
+        double decel_rpm_s = accel_m_s_s_to_rpm_s(local_decel);
+
+        double speed_target = 0;
+        double percent_output = calculate_percent_output_from_speed(motor_map[config_params::drive_motor_ids[i]].sensor_velocity, speed_target, accel_rpm_s, decel_rpm_s, value_rampers[i]);
+
+        drivetrain_diagnostics.modules[i].target_speed_rpm = speed_target;
+        drivetrain_diagnostics.modules[i].ramped_target_speed_rpm = value_rampers[i]->get_value();
+
+        drivetrain_diagnostics.modules[i].commanded_percent_out = percent_output;
+        drivetrain_diagnostics.modules[i].target_accel = local_accel;
+
+        drive_motors[i]->set( Motor::Control_Mode::PERCENT_OUTPUT, percent_output, 0 );
+    }
+
+}
+
 void set_swerve_output(std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo)
 {
     double accel = config_params::robot_max_fwd_accel;
     double decel = config_params::robot_max_fwd_decel;
 
     std::vector<float> fades = calculate_accel_fade();
-    static std::vector<AccelRamper *> value_rampers;
-
-    static ros::Time last_run = ros::Time::now();
-
-    static bool first_pass = true;
     if (first_pass)
     {
         for (size_t i = 0; i < drive_motors.size(); i++)
@@ -157,7 +220,6 @@ void set_swerve_output(std::vector<std::pair<geometry::Pose, geometry::Twist>> s
         double decel_rpm_s = accel_m_s_s_to_rpm_s(local_decel);
 
         double speed_target = sdo[i].second.linear.x() / (ck::math::inches_to_meters(config_params::wheel_diameter_inches) * M_PI) * 60.0;
-        // drive_motors[i]->set( Motor::Control_Mode::VELOCITY, speed_target, 0 );
         double percent_output = calculate_percent_output_from_speed(motor_map[config_params::drive_motor_ids[i]].sensor_velocity, speed_target, accel_rpm_s, decel_rpm_s, value_rampers[i]);
 
         drivetrain_diagnostics.modules[i].target_speed_rpm = speed_target;

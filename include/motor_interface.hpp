@@ -7,6 +7,9 @@
 extern std::vector<Motor*> drive_motors;
 extern std::vector<Motor*> steering_motors;
 
+
+void set_swerve_idle();
+
 void set_swerve_output(std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo);
 
 void set_brake_mode(bool brake);
