@@ -62,7 +62,6 @@ double calculate_percent_output_from_speed(double current_speed, double target_s
             output_value = ks;
         }
     }
-    ck::log_error << "CS: " << current_speed << " TS: " << target_speed << " AC: " << accel << " DC: " << decel << " RM: " << ramper->get_value() << " OV: " << output_value << std::flush;
 
     return output_value;
     // abject horror ^^
@@ -181,7 +180,6 @@ void set_swerve_idle()
 
 void set_swerve_output(std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo)
 {
-    ck::log_error << "Running regular" << std::flush;
     double accel = config_params::robot_max_fwd_accel;
     double decel = config_params::robot_max_fwd_decel;
 
