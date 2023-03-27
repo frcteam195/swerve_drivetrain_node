@@ -135,7 +135,7 @@ static bool first_pass = true;
 void set_swerve_idle()
 {
     double accel = config_params::robot_max_fwd_accel;
-    double decel = config_params::robot_max_fwd_decel;
+    double decel = config_params::quattro_decel;
 
     if (first_pass)
     {
@@ -181,7 +181,7 @@ void set_swerve_idle()
 void set_swerve_output(std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo)
 {
     double accel = config_params::robot_max_fwd_accel;
-    double decel = config_params::robot_max_fwd_decel;
+    double decel = config_params::quattro_decel;
 
     std::vector<float> fades = calculate_accel_fade();
     if (first_pass)
