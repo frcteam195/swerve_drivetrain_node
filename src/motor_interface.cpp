@@ -50,8 +50,6 @@ double calculate_percent_output_from_speed(double current_speed, double target_s
         output_value = ks;
     }
 
-    ck::log_error << "AV: " << available_voltage << " AA: " << available_accel << " CS: " << current_speed << " TS: " << target_speed << " OV: " << output_value << " IA: " << accel << std::flush;
-
     return output_value;
     // abject horror ^^
 }
@@ -118,26 +116,8 @@ std::vector<float> calculate_accel_fade()
 
 
 static std::vector<AccelRamper *> value_rampers;
-static ros::Time last_run = ros::Time::now();
+static ros::Time last_run = ros::Time(0);
 static bool first_pass = true;
-
-
-    // for (Motor* mF : drive_motors)
-    // {
-    //     mF->set( Motor::Control_Mode::PERCENT_OUTPUT, 0, 0 );
-    // }
-    // for (Motor* mS : steering_motors)
-    // {
-    //     mS->set( Motor::Control_Mode::PERCENT_OUTPUT, 0, 0 );
-    // }
-
-    // for (size_t i = 0; i < drive_motors.size(); i++)
-    // {
-    //     drivetrain_diagnostics.modules[i].target_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI));
-    //     drivetrain_diagnostics.modules[i].actual_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI));
-    //     drivetrain_diagnostics.modules[i].target_speed_m_s = 0;
-    //     drivetrain_diagnostics.modules[i].actual_speed_m_s = motor_map[config_params::drive_motor_ids[i]].sensor_velocity * (ck::math::inches_to_meters(config_params::wheel_diameter_inches)* M_PI) / 60.0;
-    // }
 
 void set_swerve_idle()
 {
@@ -146,6 +126,7 @@ void set_swerve_idle()
 
     if (first_pass)
     {
+        last_run = ros::Time::now();
         for (size_t i = 0; i < drive_motors.size(); i++)
         {
             value_rampers.push_back(new AccelRamper(accel, decel, 0, 1));
@@ -192,6 +173,7 @@ void set_swerve_output(std::vector<std::pair<geometry::Pose, geometry::Twist>> s
     std::vector<float> fades = calculate_accel_fade();
     if (first_pass)
     {
+        last_run = ros::Time::now();
         for (size_t i = 0; i < drive_motors.size(); i++)
         {
             value_rampers.push_back(new AccelRamper(accel, decel, 0, 1));
@@ -212,7 +194,6 @@ void set_swerve_output(std::vector<std::pair<geometry::Pose, geometry::Twist>> s
 	for (size_t i = 0; i < drive_motors.size(); i++)
 	{
         double local_accel = accel - fades[i];
-        ck::log_error << "Fade: " << fades[i] << std::flush;
         local_accel = std::max(0.0, local_accel);
         double accel_rpm_s = accel_m_s_s_to_rpm_s(local_accel);
 
