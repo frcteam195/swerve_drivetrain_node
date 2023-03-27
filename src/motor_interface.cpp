@@ -38,7 +38,7 @@ double calculate_percent_output_from_speed(double current_speed, double target_s
 
     float output_value = 0;
 
-    if (error >= 0.01)
+    if (error >= 0.01 && std::abs(target_speed) > std::abs(current_speed))
     {
         int8_t error_sign = error / std::abs(error);
         double error_dampening = 1.0 / (ck::math::inches_to_meters(config_params::wheel_diameter_inches) * M_PI) * 60.0;
@@ -48,11 +48,21 @@ double calculate_percent_output_from_speed(double current_speed, double target_s
         available_accel *= error;
         output_value = (target_speed / kv / 12.0) + ((available_accel / ka / 12.0) * error_sign);
 
-        if (output_value < ks)
+        if (output_value < ks && target_speed > 0)
         {
             output_value = ks;
         }
     }
+    else
+    {
+        output_value = (target_speed / kv / 12.0);
+
+        if (output_value < ks && target_speed > 0)
+        {
+            output_value = ks;
+        }
+    }
+    ck::log_error << "CS: " << current_speed << " TS: " << target_speed << " AC: " << accel << " DC: " << decel << " RM: " << ramper->get_value() << " OV: " << output_value << std::flush;
 
     return output_value;
     // abject horror ^^
@@ -171,6 +181,7 @@ void set_swerve_idle()
 
 void set_swerve_output(std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo)
 {
+    ck::log_error << "Running regular" << std::flush;
     double accel = config_params::robot_max_fwd_accel;
     double decel = config_params::robot_max_fwd_decel;
 
