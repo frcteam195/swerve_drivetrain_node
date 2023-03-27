@@ -235,6 +235,24 @@ void set_swerve_output(std::vector<std::pair<geometry::Pose, geometry::Twist>> s
 	}
 }
 
+void set_swerve_output_auto(std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo)
+{
+	for (size_t i = 0; i < drive_motors.size(); i++)
+	{
+		double speed_target = sdo[i].second.linear.x() / (ck::math::inches_to_meters(config_params::wheel_diameter_inches) * M_PI) * 60.0;
+		drive_motors[i]->set( Motor::Control_Mode::VELOCITY, speed_target, 0 );
+		float delta = smallest_traversal(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI), ck::math::normalize_to_2_pi(sdo[i].first.orientation.yaw()));
+		float target = (motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI) + delta;
+		steering_motors[i]->set( Motor::Control_Mode::POSITION, target / (2.0 * M_PI), 0 );
+
+		drivetrain_diagnostics.modules[i].target_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(sdo[i].first.orientation.yaw()));
+		drivetrain_diagnostics.modules[i].actual_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI));
+		drivetrain_diagnostics.modules[i].target_speed_m_s = sdo[i].second.linear.x();
+		drivetrain_diagnostics.modules[i].actual_speed_m_s = motor_map[config_params::drive_motor_ids[i]].sensor_velocity * (ck::math::inches_to_meters(config_params::wheel_diameter_inches) * M_PI) / 60.0;
+
+	}
+}
+
 void set_brake_mode(bool brake)
 {
 	if (brake)

@@ -52,6 +52,26 @@ void update_motor_transforms()
     }
 }
 
+void kill_motors()
+{
+    for (Motor* mF : drive_motors)
+    {
+        mF->set( Motor::Control_Mode::PERCENT_OUTPUT, 0, 0 );
+    }
+    for (Motor* mS : steering_motors)
+    {
+        mS->set( Motor::Control_Mode::PERCENT_OUTPUT, 0, 0 );
+    }
+
+    for (size_t i = 0; i < drive_motors.size(); i++)
+    {
+        drivetrain_diagnostics.modules[i].target_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI));
+        drivetrain_diagnostics.modules[i].actual_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI));
+        drivetrain_diagnostics.modules[i].target_speed_m_s = 0;
+        drivetrain_diagnostics.modules[i].actual_speed_m_s = motor_map[config_params::drive_motor_ids[i]].sensor_velocity * (ck::math::inches_to_meters(config_params::wheel_diameter_inches)* M_PI) / 60.0;
+    }
+}
+
 void apply_robot_twist(geometry::Twist desired_twist, bool useDeadband=true)
 {
     double linear_deadband = 0.2;
@@ -72,6 +92,29 @@ void apply_robot_twist(geometry::Twist desired_twist, bool useDeadband=true)
     else
     {
         set_swerve_idle();
+    }
+}
+
+void apply_robot_twist_auto(geometry::Twist desired_twist, bool useDeadband=true)
+{
+    double linear_deadband = 0.2;
+    double angular_deadband = 20;
+
+    if (!useDeadband)
+    {
+        linear_deadband = 0.0;
+        angular_deadband = 10;
+    }
+
+    if (std::abs(desired_twist.linear.norm()) > linear_deadband ||
+        std::abs(desired_twist.angular.yaw()) > ck::math::deg2rad(angular_deadband))
+    {
+        std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo = calculate_swerve_outputs(desired_twist, wheel_transforms);
+        set_swerve_output_auto(sdo);
+    }
+    else
+    {
+        kill_motors();
     }
 }
 
@@ -154,12 +197,12 @@ void process_swerve_logic()
                 }
                 else
                 {
-                    apply_robot_twist(desired_robot_twist, false);
+                    apply_robot_twist_auto(desired_robot_twist, false);
                 }
             }
             else
             {
-                set_swerve_idle();
+                kill_motors();
             }
         }
         break;
