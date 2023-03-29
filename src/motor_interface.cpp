@@ -48,18 +48,18 @@ double calculate_percent_output_from_speed(double current_speed, double target_s
         available_accel *= error;
         output_value = (target_speed / kv / 12.0) + ((available_accel / ka / 12.0) * error_sign);
 
-        if (output_value < ks && target_speed > 0)
+        if (std::abs(output_value) < ks && std::abs(target_speed) > 0)
         {
-            output_value = ks;
+            output_value = ks * (std::abs(target_speed) / target_speed);;
         }
     }
     else
     {
         output_value = (target_speed / kv / 12.0);
 
-        if (output_value < ks && target_speed > 0)
+        if (std::abs(output_value) < ks && std::abs(target_speed) > 0)
         {
-            output_value = ks;
+            output_value = ks * (std::abs(target_speed) / target_speed);;
         }
     }
 
