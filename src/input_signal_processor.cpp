@@ -168,8 +168,8 @@ geometry::Twist get_twist_from_HMI()
 
 	geometry::Twist return_twist;
 
-	return_twist.linear.x(percent_max_fwd_vel * std::cos(direction) * config_params::robot_max_fwd_vel);
-	return_twist.linear.y(percent_max_fwd_vel * std::sin(direction) * config_params::robot_max_fwd_vel);
+	return_twist.linear.x(percent_max_fwd_vel * std::cos(direction) * config_params::robot_teleop_max_fwd_vel);
+	return_twist.linear.y(percent_max_fwd_vel * std::sin(direction) * config_params::robot_teleop_max_fwd_vel);
 	return_twist.angular.yaw(target_angular_velocity);
 
 	// No heading pose used in teleop
