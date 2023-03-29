@@ -218,6 +218,7 @@ void set_swerve_output(std::vector<std::pair<geometry::Pose, geometry::Twist>> s
 
         drivetrain_diagnostics.modules[i].target_speed_rpm = speed_target;
         drivetrain_diagnostics.modules[i].ramped_target_speed_rpm = value_rampers[i]->get_value();
+        drivetrain_diagnostics.modules[i].actual_speed_rpm = motor_map[config_params::drive_motor_ids[i]].sensor_velocity;
 
         drivetrain_diagnostics.modules[i].commanded_percent_out = percent_output;
         drivetrain_diagnostics.modules[i].target_accel = local_accel;

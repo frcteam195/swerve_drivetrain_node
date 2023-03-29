@@ -57,6 +57,7 @@ namespace config_params
 
     extern double robot_max_fwd_accel;
     extern double quattro_decel;
+    extern double robot_teleop_max_fwd_vel;
 
     bool init_params(ros::NodeHandle &n);
 }

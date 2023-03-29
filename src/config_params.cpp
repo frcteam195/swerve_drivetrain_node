@@ -55,6 +55,7 @@ namespace config_params
 
     double robot_max_fwd_accel;
     double quattro_decel;
+    double robot_teleop_max_fwd_vel;
 
 	bool init_params(ros::NodeHandle &n)
 	{
@@ -114,6 +115,7 @@ namespace config_params
 		required_params_found &= n.getParam(CKSP(steering_supply_current_limit_threshold_exceeded_time), steering_supply_current_limit_threshold_exceeded_time);
         required_params_found &= n.getParam(CKSP(robot_max_fwd_accel), robot_max_fwd_accel);
         required_params_found &= n.getParam(CKSP(quattro_decel), quattro_decel);
+        required_params_found &= n.getParam(CKSP(robot_teleop_max_fwd_vel), robot_teleop_max_fwd_vel);
 
 
 		if (!required_params_found)
