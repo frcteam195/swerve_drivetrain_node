@@ -216,7 +216,7 @@ void process_swerve_logic()
             }
             else
             {
-                apply_robot_twist(desired_robot_twist);
+                apply_robot_twist_auto(desired_robot_twist);
             }
         }
         break;
