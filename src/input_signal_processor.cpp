@@ -121,6 +121,12 @@ geometry::Twist get_twist_from_auto()
 	return_twist = geometry::to_twist(auto_control.twist);
 	geometry::Pose heading_pose = geometry::to_pose(auto_control.pose);
 
+    
+    static geometry::Pose last_heading_pose = heading_pose;
+    static float d_yaw = (heading_pose.orientation.yaw() - last_heading_pose.orientation.yaw()) / TIMESTEP_DELTA_S;
+    d_yaw = (heading_pose.orientation.yaw() - last_heading_pose.orientation.yaw()) / TIMESTEP_DELTA_S;
+    return_twist.angular.yaw(d_yaw);
+    last_heading_pose = heading_pose;
 	drivetrain_diagnostics.target_angular_speed_deg_s = ck::math::rad2deg(return_twist.angular.yaw());
 
 	// Always call both perform field alignment, and heading stabilization even if you know you'll
