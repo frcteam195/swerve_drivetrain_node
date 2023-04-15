@@ -123,8 +123,8 @@ geometry::Twist get_twist_from_auto()
 
     
     static geometry::Pose last_heading_pose = heading_pose;
-    static float d_yaw = smallest_traversal(heading_pose.orientation.yaw(), last_heading_pose.orientation.yaw()) / TIMESTEP_DELTA_S;
-    d_yaw = smallest_traversal(heading_pose.orientation.yaw(), last_heading_pose.orientation.yaw()) / TIMESTEP_DELTA_S;
+    static float d_yaw = (heading_pose.orientation.yaw() - last_heading_pose.orientation.yaw()) / TIMESTEP_DELTA_S;
+    d_yaw = (heading_pose.orientation.yaw() - last_heading_pose.orientation.yaw()) / TIMESTEP_DELTA_S;
     return_twist.angular.yaw(d_yaw);
     last_heading_pose = heading_pose;
 	drivetrain_diagnostics.target_angular_speed_deg_s = ck::math::rad2deg(return_twist.angular.yaw());
