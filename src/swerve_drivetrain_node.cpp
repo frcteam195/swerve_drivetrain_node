@@ -165,6 +165,9 @@ void apply_x_mode()
 
 void process_swerve_logic()
 {
+    static int8_t prev_robot_mode = 3;
+    static ros::Duration time_in_disabled;
+    static ros::Time disabled_start_time = ros::Time::now();
     static int8_t frame_counter = 0;
     frame_counter ++;
     frame_counter = frame_counter % 100;
@@ -224,13 +227,25 @@ void process_swerve_logic()
         case ck_ros_base_msgs_node::Robot_Status::TEST:
         default:
         {
+            if (prev_robot_mode != ck_ros_base_msgs_node::Robot_Status::DISABLED)
+            {
+                time_in_disabled = ros::Duration(0);
+                disabled_start_time = ros::Time::now();
+            }
+            time_in_disabled = ros::Time::now() - disabled_start_time;
+
+            if (time_in_disabled.toSec() > 15)
+            {
+                set_brake_mode(false);
+            }
+
             auto_control_valid = false;
             run_once = true;
             set_swerve_idle();
         }
         break;
     }
-
+    prev_robot_mode = robot_status.robot_state;
     geometry::Transform robot_pose = get_robot_transform();
     drivetrain_diagnostics.actual_heading = ck::math::rad2deg(robot_pose.angular.yaw());
 
