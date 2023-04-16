@@ -122,16 +122,16 @@ geometry::Twist get_twist_from_auto()
 	geometry::Pose heading_pose = geometry::to_pose(auto_control.pose);
 
 
-    static geometry::Pose last_heading_pose = heading_pose;
-    static float d_yaw = (heading_pose.orientation.yaw() - last_heading_pose.orientation.yaw()) / TIMESTEP_DELTA_S;
-    d_yaw = (heading_pose.orientation.yaw() - last_heading_pose.orientation.yaw()) / TIMESTEP_DELTA_S;
-    d_yaw *= 0.9;
-    if (std::abs(heading_pose.orientation.yaw() - last_heading_pose.orientation.yaw()) > ck::math::deg2rad(5.0))
-    {
-        d_yaw = 0;
-    }
-    return_twist.angular.yaw(d_yaw);
-    last_heading_pose = heading_pose;
+    // static geometry::Pose last_heading_pose = heading_pose;
+    // static float d_yaw = (heading_pose.orientation.yaw() - last_heading_pose.orientation.yaw()) / TIMESTEP_DELTA_S;
+    // d_yaw = (heading_pose.orientation.yaw() - last_heading_pose.orientation.yaw()) / TIMESTEP_DELTA_S;
+    // d_yaw *= 0.9;
+    // if (std::abs(heading_pose.orientation.yaw() - last_heading_pose.orientation.yaw()) > ck::math::deg2rad(5.0))
+    // {
+    //     d_yaw = 0;
+    // }
+    // return_twist.angular.yaw(d_yaw);
+    // last_heading_pose = heading_pose;
 	drivetrain_diagnostics.target_angular_speed_deg_s = ck::math::rad2deg(return_twist.angular.yaw());
 
 	// Always call both perform field alignment, and heading stabilization even if you know you'll
