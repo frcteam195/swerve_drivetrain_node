@@ -95,6 +95,11 @@ void apply_robot_twist(geometry::Twist desired_twist, bool useDeadband=true)
     }
 }
 
+void apply_robot_twist_team254(geometry::Twist desired_twist)
+{
+    (void)desired_twist;
+}
+
 void apply_robot_twist_auto(geometry::Twist desired_twist, bool useDeadband=true)
 {
     double linear_deadband = 0.2;
@@ -200,7 +205,21 @@ void process_swerve_logic()
                 }
                 else
                 {
-                    apply_robot_twist_auto(desired_robot_twist, false);
+                    switch (config_params::drive_control_mode)
+                    {
+                        case config_params::DriveControlMode::TEAM254_SETPOINT_GEN:
+                        {
+                            apply_robot_twist_team254(desired_robot_twist);
+                            break;
+                        }
+                        case config_params::DriveControlMode::SWERVE_VELOCITY_FF:
+                        default:
+                        {
+                            apply_robot_twist_auto(desired_robot_twist, false);
+                            break;
+                        }
+                    };
+                    
                 }
             }
             else

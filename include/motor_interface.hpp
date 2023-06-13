@@ -14,6 +14,8 @@ void set_swerve_output(std::vector<std::pair<geometry::Pose, geometry::Twist>> s
 
 void set_swerve_output_auto(std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo);
 
+void set_swerve_team254(std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo);
+
 void set_brake_mode(bool brake);
 
 void init_swerve_motors();

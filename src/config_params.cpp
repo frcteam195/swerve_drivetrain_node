@@ -57,6 +57,8 @@ namespace config_params
     double quattro_decel;
     double robot_teleop_max_fwd_vel;
 
+	DriveControlMode drive_control_mode;
+
 	bool init_params(ros::NodeHandle &n)
 	{
 		bool required_params_found = true;
@@ -116,6 +118,9 @@ namespace config_params
         required_params_found &= n.getParam(CKSP(robot_max_fwd_accel), robot_max_fwd_accel);
         required_params_found &= n.getParam(CKSP(quattro_decel), quattro_decel);
         required_params_found &= n.getParam(CKSP(robot_teleop_max_fwd_vel), robot_teleop_max_fwd_vel);
+		int tmp_drive_control_mode = 0;
+        required_params_found &= n.getParam(CKSP(drive_control_mode), tmp_drive_control_mode);
+		drive_control_mode = (DriveControlMode)tmp_drive_control_mode;
 
 
 		if (!required_params_found)

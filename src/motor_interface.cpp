@@ -236,6 +236,11 @@ void set_swerve_output(std::vector<std::pair<geometry::Pose, geometry::Twist>> s
 	}
 }
 
+void set_swerve_output_team254(std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo)
+{
+    (void)sdo;
+}
+
 void set_swerve_output_auto(std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo)
 {
 	for (size_t i = 0; i < drive_motors.size(); i++)

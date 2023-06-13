@@ -59,5 +59,13 @@ namespace config_params
     extern double quattro_decel;
     extern double robot_teleop_max_fwd_vel;
 
+    enum class DriveControlMode : int
+    {
+        SWERVE_VELOCITY_FF = 0,
+        TEAM254_SETPOINT_GEN = 1
+    };
+
+    extern DriveControlMode drive_control_mode;
+
     bool init_params(ros::NodeHandle &n);
 }
