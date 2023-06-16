@@ -245,6 +245,11 @@ void set_swerve_output_team254(const ck::team254_swerve::SwerveSetpoint& swerve_
 		float delta = smallest_traversal(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI), ck::math::normalize_to_2_pi(swerve_setpoint.mModuleStates[i].angle.getRadians()));
 		float target = (motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI) + delta;
 		steering_motors[i]->set( Motor::Control_Mode::POSITION, target / (2.0 * M_PI), 0 );
+
+        drivetrain_diagnostics.modules[i].target_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(swerve_setpoint.mModuleStates[i].angle.getRadians()));
+		drivetrain_diagnostics.modules[i].actual_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI));
+		drivetrain_diagnostics.modules[i].target_speed_m_s = swerve_setpoint.mModuleStates[i].speedMetersPerSecond;
+		drivetrain_diagnostics.modules[i].actual_speed_m_s = motor_map[config_params::drive_motor_ids[i]].sensor_velocity * (ck::math::inches_to_meters(config_params::wheel_diameter_inches) * M_PI) / 60.0;
 	}
 }
 
