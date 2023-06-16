@@ -1,5 +1,7 @@
 #include "config_params.hpp"
 #include <ck_utilities/ParameterHelper.hpp>
+#include <ck_utilities/team254_swerve/SwerveSetpointGenerator.hpp>
+#include "swerve_drivetrain_node.hpp"
 
 namespace config_params
 {
@@ -14,6 +16,10 @@ namespace config_params
 	std::vector<double> robot_wheel_inches_from_center_y;
 	double robot_max_fwd_vel;
 	double robot_max_ang_vel;
+
+	double team254_max_vel;
+	double team254_max_accel;
+	double team254_max_ang_vel;
 
 	int motor_type;
 	double voltage_comp_saturation;
@@ -118,10 +124,17 @@ namespace config_params
         required_params_found &= n.getParam(CKSP(robot_max_fwd_accel), robot_max_fwd_accel);
         required_params_found &= n.getParam(CKSP(quattro_decel), quattro_decel);
         required_params_found &= n.getParam(CKSP(robot_teleop_max_fwd_vel), robot_teleop_max_fwd_vel);
+		
+		
 		int tmp_drive_control_mode = 0;
         required_params_found &= n.getParam(CKSP(drive_control_mode), tmp_drive_control_mode);
 		drive_control_mode = (DriveControlMode)tmp_drive_control_mode;
 
+		required_params_found &= n.getParam(CKSP(team254_max_vel), team254_max_vel);
+		required_params_found &= n.getParam(CKSP(team254_max_accel), team254_max_accel);
+		required_params_found &= n.getParam(CKSP(team254_max_ang_vel), team254_max_ang_vel);
+
+		swerve_kinematic_limits = ck::team254_swerve::KinematicLimits {team254_max_vel, team254_max_accel, team254_max_ang_vel};
 
 		if (!required_params_found)
 		{

@@ -15,6 +15,8 @@
 #include <ck_ros_msgs_node/HMI_Signals.h>
 #include <swerve_trajectory_node/StartTrajectory.h>
 
+#include <ck_utilities/team254_swerve/SwerveSetpointGenerator.hpp>
+
 #include "swerve_drivetrain_node.hpp"
 
 #include "swerve_drive_helper.hpp"
@@ -38,6 +40,18 @@ static bool auto_control_valid;
 
 static ros::Publisher * diagnostics_publisher;
 ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics drivetrain_diagnostics;
+
+ck::team254_swerve::SwerveDriveKinematics* swerve_kinematics;
+ck::team254_swerve::SwerveSetpointGenerator* swerve_setpoint_gen;
+ck::team254_swerve::KinematicLimits swerve_kinematic_limits;
+
+ck::team254_swerve::SwerveSetpoint swerve_setpoint(ck::planners::ChassisSpeeds(), std::vector<ck::team254_swerve::SwerveModuleState>{
+    ck::team254_swerve::SwerveModuleState(),
+    ck::team254_swerve::SwerveModuleState(),
+    ck::team254_swerve::SwerveModuleState(),
+    ck::team254_swerve::SwerveModuleState()
+});
+
 
 bool run_once = true;
 
@@ -97,7 +111,22 @@ void apply_robot_twist(geometry::Twist desired_twist, bool useDeadband=true)
 
 void apply_robot_twist_team254(geometry::Twist desired_twist)
 {
-    (void)desired_twist;
+    constexpr double ideal_dt = 0.01;
+    static ros::Time prev_time = ros::Time::now();
+    double dt = (ros::Time::now() - prev_time).toSec();
+    if (dt != 0)
+    {
+        ck::planners::ChassisSpeeds desired_speeds(desired_twist.linear.x(), desired_twist.linear.y(), desired_twist.angular.yaw());
+
+        ck::team254_geometry::Pose2d robot_pose_vel(desired_speeds.vxMetersPerSecond * ideal_dt,
+                                                    desired_speeds.vyMetersPerSecond * ideal_dt,
+                                                    ck::team254_geometry::Rotation2d::fromRadians(desired_speeds.omegaRadiansPerSecond * ideal_dt));
+        ck::team254_geometry::Twist2d twist_vel = ck::team254_geometry::Pose2d::log(robot_pose_vel);
+        ck::planners::ChassisSpeeds updated_chassis_speeds(twist_vel.dx / ideal_dt, twist_vel.dy / ideal_dt, twist_vel.dtheta / ideal_dt);
+        swerve_setpoint = swerve_setpoint_gen->generateSetpoint(swerve_kinematic_limits, swerve_setpoint, updated_chassis_speeds, dt);  //TODO: If something is wrong, try changing to ideal_dt here
+
+        set_swerve_output_team254(swerve_setpoint);
+    }
 }
 
 void apply_robot_twist_auto(geometry::Twist desired_twist, bool useDeadband=true)
@@ -315,6 +344,8 @@ int main(int argc, char **argv)
     }
 
     init_swerve_motors();
+
+    swerve_setpoint_gen = new ck::team254_swerve::SwerveSetpointGenerator(*swerve_kinematics);
 
     static ros::Subscriber motor_status_subscriber = node->subscribe("/MotorStatus", 1, motor_status_callback, ros::TransportHints().tcpNoDelay());
     static ros::Subscriber robot_status_subscriber = node->subscribe("/RobotStatus", 1, robot_status_callback, ros::TransportHints().tcpNoDelay());
