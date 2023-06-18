@@ -236,6 +236,23 @@ void set_swerve_output(std::vector<std::pair<geometry::Pose, geometry::Twist>> s
 	}
 }
 
+void set_swerve_output_team254(const ck::team254_swerve::SwerveSetpoint& swerve_setpoint)
+{
+    for (size_t i = 0; i < swerve_setpoint.mModuleStates.size(); i++)
+	{
+		double speed_target = swerve_setpoint.mModuleStates[i].speedMetersPerSecond / (ck::math::inches_to_meters(config_params::wheel_diameter_inches) * M_PI) * 60.0;
+		drive_motors[i]->set( Motor::Control_Mode::VELOCITY, speed_target, 0 );
+		float delta = smallest_traversal(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI), ck::math::normalize_to_2_pi(swerve_setpoint.mModuleStates[i].angle.getRadians()));
+		float target = (motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI) + delta;
+		steering_motors[i]->set( Motor::Control_Mode::POSITION, target / (2.0 * M_PI), 0 );
+
+        drivetrain_diagnostics.modules[i].target_steering_angle_team254_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(swerve_setpoint.mModuleStates[i].angle.getRadians()));
+		drivetrain_diagnostics.modules[i].actual_steering_angle_deg = ck::math::rad2deg(ck::math::normalize_to_2_pi(motor_map[config_params::steering_motor_ids[i]].sensor_position * 2.0 * M_PI));
+		drivetrain_diagnostics.modules[i].target_speed_team254_m_s = swerve_setpoint.mModuleStates[i].speedMetersPerSecond;
+		drivetrain_diagnostics.modules[i].actual_speed_m_s = motor_map[config_params::drive_motor_ids[i]].sensor_velocity * (ck::math::inches_to_meters(config_params::wheel_diameter_inches) * M_PI) / 60.0;
+	}
+}
+
 void set_swerve_output_auto(std::vector<std::pair<geometry::Pose, geometry::Twist>> sdo)
 {
 	for (size_t i = 0; i < drive_motors.size(); i++)
@@ -329,6 +346,8 @@ void init_swerve_motors()
 		steering_motors.push_back(steering_motor);
     }
 
+    std::vector<ck::team254_geometry::Translation2d> team254_module_kinematics;
+
 	//Init swerve configuration
 	for (int i = 0; i < config_params::robot_num_wheels; i++)
 	{
@@ -338,5 +357,10 @@ void init_swerve_motors()
 		wheel_transforms.push_back(wheel);
 		drivetrain_diagnostics.modules[i].x_transform_m = wheel.linear.x();
 		drivetrain_diagnostics.modules[i].y_transform_m = wheel.linear.y();
+
+
+        //Team254 Init
+        team254_module_kinematics.push_back(ck::team254_geometry::Translation2d(ck::math::inches_to_meters(config_params::robot_wheel_inches_from_center_x[i]), ck::math::inches_to_meters(config_params::robot_wheel_inches_from_center_y[i])));
 	}
+    swerve_kinematics = new ck::team254_swerve::SwerveDriveKinematics(team254_module_kinematics);
 }
