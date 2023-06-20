@@ -5,6 +5,7 @@
 #include <ck_ros_msgs_node/HMI_Signals.h>
 #include <ck_ros_msgs_node/Swerve_Drivetrain_Auto_Control.h>
 #include <ck_ros_msgs_node/Swerve_Drivetrain_Diagnostics.h>
+#include <ck_ros_msgs_node/Arm_Status.h>
 #include <ck_utilities/geometry/geometry.hpp>
 #include <ck_utilities/PIDController.hpp>
 #include <ros/ros.h>
@@ -17,6 +18,7 @@ extern ck_ros_msgs_node::Swerve_Drivetrain_Auto_Control auto_control;
 extern std::vector<geometry::Transform> wheel_transforms;
 extern ros::NodeHandle* node;
 extern ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics drivetrain_diagnostics;
+extern ck_ros_msgs_node::Arm_Status arm_status;
 
 extern ck::team254_swerve::SwerveDriveKinematics* swerve_kinematics;
 extern ck::team254_swerve::SwerveSetpointGenerator* swerve_setpoint_gen;

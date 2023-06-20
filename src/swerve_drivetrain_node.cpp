@@ -13,6 +13,7 @@
 #include <ck_utilities/CKMath.hpp>
 #include <ck_ros_msgs_node/Swerve_Drivetrain_Diagnostics.h>
 #include <ck_ros_msgs_node/HMI_Signals.h>
+#include <ck_ros_msgs_node/Arm_Status.h>
 #include <swerve_trajectory_node/StartTrajectory.h>
 
 #include <ck_utilities/team254_swerve/SwerveSetpointGenerator.hpp>
@@ -35,6 +36,7 @@ ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics swerve_drivetrain_diagnostics;
 std::map<uint16_t, ck_ros_base_msgs_node::Motor_Info> motor_map;
 ck_ros_base_msgs_node::Robot_Status robot_status;
 ck_ros_msgs_node::HMI_Signals hmi_signals;
+ck_ros_msgs_node::Arm_Status arm_status;
 ck_ros_msgs_node::Swerve_Drivetrain_Auto_Control auto_control;
 static bool auto_control_valid;
 
@@ -116,6 +118,10 @@ void apply_robot_twist_team254(geometry::Twist desired_twist)
     double dt = (ros::Time::now() - prev_time).toSec();
     if (dt != 0)
     {
+        // TODO: Use this angle to lerp a better accel limit to prevent tipping
+        double total_arm_angle = abs(arm_status.arm_base_angle + arm_status.arm_upper_angle);
+        total_arm_angle = ck::math::limit(total_arm_angle, 0.0, 150.0);
+
         ck::planners::ChassisSpeeds desired_speeds(desired_twist.linear.x(), desired_twist.linear.y(), desired_twist.angular.yaw());
 
         ck::team254_geometry::Pose2d robot_pose_vel(desired_speeds.vxMetersPerSecond * ideal_dt,
@@ -330,6 +336,11 @@ void auto_control_callback(const ck_ros_msgs_node::Swerve_Drivetrain_Auto_Contro
     auto_control_valid = true;
 }
 
+void arm_status_callback(const ck_ros_msgs_node::Arm_Status& arm_status_)
+{
+    arm_status = arm_status_;
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "drivetrain");
@@ -351,6 +362,7 @@ int main(int argc, char **argv)
     static ros::Subscriber robot_status_subscriber = node->subscribe("/RobotStatus", 1, robot_status_callback, ros::TransportHints().tcpNoDelay());
     static ros::Subscriber hmi_signals_subscriber = node->subscribe("/HMISignals", 1, hmi_signals_callback, ros::TransportHints().tcpNoDelay());
     static ros::Subscriber auto_signals_subscriber = node->subscribe("/SwerveAutoControl", 1, auto_control_callback, ros::TransportHints().tcpNoDelay());
+    static ros::Subscriber arm_status_subscriber = node->subscribe("/ArmStatus", 1, arm_status_callback, ros::TransportHints().tcpNoDelay());
     ros::Publisher diagnostics_publisher_ = node->advertise<ck_ros_msgs_node::Swerve_Drivetrain_Diagnostics>("/SwerveDiagnostics", 10);
     diagnostics_publisher = &diagnostics_publisher_;
     ros::spin();
